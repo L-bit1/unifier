@@ -60,4 +60,4 @@ GitHub **公开仓库无法关闭 Fork 功能**（平台限制）。因此：
 ## 联系
 
 - Bug / 功能： [GitHub Issues](https://github.com/L-bit1/unifier/issues)  
-- 安全漏洞：请私信仓库 Owner，勿公开贴密钥  
+- 维护者：QQ `2781227205` · 微信 `DT-13lw`（Collaborator 申请、商业授权、安全漏洞私信，勿公开贴密钥）

@@ -8,6 +8,15 @@
 
 **Unifier** glues your stack together: command from **Feishu (Lark)** on your phone, orchestrate via a local **Hub**, execute on **Cursor / Trae** across Mac & Windows, and keep code truth on **GitHub**.
 
+**维护者联系 · Maintainer**
+
+| | |
+|--|--|
+| QQ | `2781227205` |
+| 微信 WeChat | `DT-13lw` |
+
+合作、Collaborator 申请、商业授权或安全问题，可通过以上方式联系；代码问题请优先 [GitHub Issues](https://github.com/L-bit1/unifier/issues)。
+
 ---
 
 ## 为什么需要联合器？
