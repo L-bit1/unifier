@@ -25,7 +25,8 @@ YYYY-MM-DD-简短主题.md
 
 | 日期 | 文件 | 摘要 |
 |------|------|------|
-| 2026-06-09 | [2026-06-09-standalone-github-release.md](2026-06-09-standalone-github-release.md) | 独立仓库发布、配置分层、MIT 许可 |
+| 2026-06-09 | [2026-06-09-community-license-single-upstream.md](2026-06-09-community-license-single-upstream.md) | 共同维护许可证、禁止独立 Fork 产品、CONTRIBUTING/GOVERNANCE |
+| 2026-06-09 | [2026-06-09-standalone-github-release.md](2026-06-09-standalone-github-release.md) | 独立仓库发布、配置分层 |
 | 2026-05-19 | [2026-05-19-initial-product-vision.md](2026-05-19-initial-product-vision.md) | 产品愿景、四能力、非 GitHub 边界、文档与规则约定 |
 
 ## 与 AI 的协作

@@ -2,7 +2,7 @@
 
 > **像胶水一样，把工具与工具粘在一起** —— 飞书、GitHub、Cursor、Trae 不再各干各的，而是一条可指挥、可审查、可留痕的协作流水线。
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Unifier Community](https://img.shields.io/badge/License-Unifier%20Community-2563eb.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-green.svg)](hub/requirements.txt)
 [![FastAPI](https://img.shields.io/badge/FastAPI-Hub-009688.svg)](hub/README.md)
 
@@ -169,6 +169,7 @@ API 文档：启动 Hub 后访问 `http://127.0.0.1:8787/docs`
 
 ## 参与 & 文档
 
+- **共同维护**：请向官方仓库提 PR，勿另立独立 Fork 项目（见 [LICENSE](LICENSE) · [CONTRIBUTING.md](CONTRIBUTING.md) · [GOVERNANCE.md](GOVERNANCE.md)）
 - 安装问题 → [INSTALL.md](INSTALL.md)  
 - Hub API → [hub/README.md](hub/README.md)  
 - 产品决策 → [docs/decisions/](docs/decisions/)  
@@ -177,4 +178,5 @@ API 文档：启动 Hub 后访问 `http://127.0.0.1:8787/docs`
 
 ## License
 
-[MIT](LICENSE) © 2026 L-bit1
+[Unifier Community License 1.0](LICENSE) — 源码公开、共同维护；**官方唯一上游**为 [github.com/L-bit1/unifier](https://github.com/L-bit1/unifier)。  
+改进请提 Pull Request，请勿将 Fork 作为独立产品长期分叉发布。

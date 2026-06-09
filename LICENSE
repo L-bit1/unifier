@@ -1,21 +1,50 @@
-MIT License
-
+Unifier Community License 1.0（联合器共同维护许可证）
 Copyright (c) 2026 L-bit1
 
-Permission is hereby granted, free of charge, to anyone obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+本许可证适用于仓库：https://github.com/L-bit1/unifier（下称「官方仓库」）。
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+---
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+## 一、许可授予
+
+在遵守本许可证的前提下，你可以：
+
+1. **阅读、使用、部署**本软件（含修改后的版本）于个人或团队环境；
+2. **向官方仓库提交 Pull Request**，与社区共同改进本项目；
+3. **在文档与衍生说明中引用**本项目，并保留版权与许可证声明。
+
+## 二、官方唯一上游（Single Upstream）
+
+1. **官方仓库**是本项目的唯一 canonical 上游；所有公开的功能改进、缺陷修复与文档更新，应通过 **Pull Request 合并进官方仓库** 完成。
+2. 你**不得**将本软件（含修改版）以**独立项目**形式在 GitHub/GitLab/其他平台**另建仓库长期维护**，亦不得改头换面后作为与本项目竞争或替代的「分支产品」对外发布。
+3. 你**不得**移除或篡改本许可证、版权说明及官方仓库链接。
+
+> 说明：GitHub 对**公开仓库**无法关闭 Fork 按钮；本条款从**许可证**层面约束「不得另立项目长期维护」，与「大家一起维护官方仓库」的目标一致。
+
+## 三、允许的使用场景（示例）
+
+- 在本机或团队内网部署 Hub，连接自己的飞书与 IDE；
+- 向官方仓库提 Issue / PR；
+- 在博客、内部分享中介绍本项目的用法（注明来源）。
+
+## 四、禁止的使用场景（示例）
+
+- Fork 后长期独立演进，且**不**向官方仓库回馈，并对外宣称是「新版联合器 / 魔改联合器」等独立产品；
+- 删除许可证后以另一项目名重新发布源码；
+- 将本项目包装为 SaaS 多租户产品对外售卖（若需商业授权，请联系维护者另行约定）。
+
+## 五、免责声明
+
+本软件按「原样」提供，不提供任何明示或暗示担保。维护者与贡献者不对使用本软件造成的任何损失负责。
+
+## 六、贡献
+
+向官方仓库提交的贡献，默认表示你同意在相同许可证下授权项目使用（详见 CONTRIBUTING.md）。
+
+---
+
+## English Summary (non-exhaustive)
+
+You may use and deploy this software. **The canonical upstream is https://github.com/L-bit1/unifier only.**
+Improvements should be contributed via Pull Request. You may **not** republish a standalone long-lived fork as a separate competing project.
+See CONTRIBUTING.md for collaboration details.
