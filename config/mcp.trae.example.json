@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "联合器": {
+      "command": "/ABS/PATH/TO/联合器/hub/scripts/run-mcp.sh",
+      "env": {
+        "HUB_URL": "http://192.168.1.10:8787",
+        "UNIFIER_DEVICE_ID": "device-b",
+        "UNIFIER_AGENT_ID": "trae"
+      }
+    }
+  }
+}

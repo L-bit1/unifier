@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "command": "python3 hub/scripts/cursor-push-reply-hook.py",
+        "timeout": 30
+      }
+    ],
+    "afterAgentResponse": [
+      {
+        "command": "python3 hub/scripts/cursor-push-reply-hook.py",
+        "timeout": 30
+      }
+    ]
+  }
+}

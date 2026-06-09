@@ -1,0 +1,32 @@
+---
+description: 联合器 MCP 工具使用约定（Cursor 接 Hub 时）
+globs:
+alwaysApply: false
+---
+
+# 联合器 MCP（Cursor）
+
+当本机已配置 MCP 服务器「联合器」且 Hub 在线时，优先用 MCP 工具协作，避免让用户手工跑 shell。
+
+**自动推送**：本仓库已配置 Cursor Hook（`.cursor/hooks.json`），每轮 Agent 结束后会自动把回复推到飞书；无需再手工 `submit-agent-reply`，除非自动推送失败。
+
+## 何时调用
+
+- 收到联合器任务 / HANDOFF / inbox 相关工作时
+- 完成代码改动或审查后需上报 Hub 或飞书
+- 用户询问任务状态、设备在线、选配阵容
+
+## 推荐流程
+
+1. `unifier_whoami` — 确认 device/agent 身份
+2. `unifier_get_my_inbox` — 看待办
+3. 完成工作后：
+   - 执行者：`unifier_submit_manifest` → `unifier_submit_for_review`
+   - 审查者：`unifier_submit_review_vote`
+4. **务必**调用 `unifier_submit_agent_reply`（若 Hook 未触发时的兜底）
+5. 需要时：`unifier_get_task_status` / `unifier_check_merge_ready`
+
+## 注意
+
+- `UNIFIER_DEVICE_ID` / `UNIFIER_AGENT_ID` 在 MCP 配置 env 中设置（Mac cursor、Win trae 等各不同）
+- Hub 未启动时工具会失败，提示用户 `cd hub && ./run.sh`

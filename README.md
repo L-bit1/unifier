@@ -1,42 +1,180 @@
-# 联合器
+# 联合器 · Unifier
 
-本目录用于**编排**两台设备、多实例 Cursor / Trae 与飞书群的协作方式；**不负责**替代 Git 或远程托管。代码与方案的「单一事实源」仍在仓库根目录的 Git 历史及 `HANDOFF.md`、`AI协作记录.md` 等文件中。
+> **像胶水一样，把工具与工具粘在一起** —— 飞书、GitHub、Cursor、Trae 不再各干各的，而是一条可指挥、可审查、可留痕的协作流水线。
 
-## 角色分工
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-green.svg)](hub/requirements.txt)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Hub-009688.svg)](hub/README.md)
 
-| 环节 | 推荐载体 |
-|------|----------|
-| 发指令、讨论、拍板 | 飞书群（留痕） |
-| 方案 / 报告定稿 | 仓库内 `docs/reports/` 或 `HANDOFF.md` |
-| 代码与审查 | Git 分支 +（可选）PR + `push` / `pull` |
-| 谁改了什么 | `AI协作记录.md` + Commit 说明 |
+**Unifier** glues your stack together: command from **Feishu (Lark)** on your phone, orchestrate via a local **Hub**, execute on **Cursor / Trae** across Mac & Windows, and keep code truth on **GitHub**.
 
-## 日常节奏（简版）
+---
 
-1. 在飞书群发布任务（项目名、目标、分支名、截止时间）。
-2. 各端 Cursor / Trae 产出草案 → **摘要或全文贴群**；达成共识后，由负责人把**结论**写入仓库（如 `HANDOFF.md`）。
-3. 在约定分支上开发；**准备合并或推送到共享分支前**，在群里发一条「即将推送 `分支名`」，便于另一台设备 `pull` 评审。
-4. 每轮完工按仓库根目录规则更新 `README.md` 与 `AI协作记录.md`。
+## 为什么需要联合器？
 
-## 飞书群公告模板（可贴群置顶）
+你已经有飞书、GitHub、Cursor、Trae —— 但它们之间缺一层**编排**：
+
+| 没有联合器 | 有联合器 |
+|-----------|---------|
+| 飞书里讨论一堆，代码仓里没有结论 | 飞书下指令 → Hub 派活 → 各端 AI 执行 |
+| 多台电脑、多个 IDE 各自改代码 | 设备注册在线，按角色分配执行 / 审查 |
+| 多个 AI 改完就 merge，风险大 | **审查闸门**：全票通过才允许合并 |
+| 事后说不清谁改了什么 | 每次提交附带 **ChangeManifest**，可审计 |
+
+联合器**不是**第二个 GitHub。代码与历史仍在 Git；联合器只做**协作控制面**和**人机入口**。
+
+---
+
+## 连接了什么？
 
 ```text
-【协作约定】
-1. 一条消息尽量一个主题；标题注明项目与任务（例：智盈｜nginx 调优）。
-2. 讨论结论请有人同步进仓库 HANDOFF 或 docs/reports，再让 AI 改代码。
-3. 推送到团队可见分支前，在群里报备分支名；合并 main 前需群内确认（或按你们约定）。
-4. 两台设备以 Git 远程为准；开工 pull，收工 push。
+        ┌─────────────┐
+        │  飞书 / 手机  │  下指令、选项目、看状态、收 AI 回复
+        └──────┬──────┘
+               │
+        ┌──────▼──────┐
+        │  Unifier Hub │  任务状态机 · 多 Agent 审查 · 设备在线
+        └──────┬──────┘
+               │
+     ┌─────────┼─────────┐
+     │         │         │
+┌────▼───┐ ┌───▼───┐ ┌───▼────┐
+│ Mac    │ │ Win   │ │ GitHub │  分支 · PR · 代码真相
+│ Cursor │ │ Trae  │ │  repos │
+│ Trae   │ │ Cursor│ └────────┘
+└────────┘ └───────┘
 ```
 
-## 关于「不开电脑能不能让 AI 做事」
+**胶水粘住的环节：**
 
-- **「电脑不关」**：通常指家里/公司的 **Mac 或 Windows 一直开机**（或睡眠可被唤醒），你用**另一台终端**（如笔记本、手机配合远程）去连它。算力与 Cursor/Trae **仍在那台机器上（或你远程进去的会话里）**，并不是没有计算机。
-- **人完全不带设备、也不维护任何在线主机**：当前常见的 Cursor / Trae **桌面形态**无法凭空执行；需要至少 **云端 Agent / CI / 自建服务** 在**服务器**上跑任务，你在飞书发指令只是触发端——**服务器仍是计算机**，只是不是你的笔记本。
-- **实践结论**：你可以做到「**不一直坐在电脑前**」（远程、手机看飞书、回家再 `pull`），但很难做到「**全球零算力**」；若希望飞书发一句就自动改仓库，需要额外做 **机器人 + 托管环境 + 权限与审计**，本目录以后可逐步补充脚本或文档链接，不替代你对安全与成本的把控。
+- **飞书** ↔ Hub：派活、项目卡片、联通检查、AI 回复推送
+- **Hub** ↔ 各机 Agent：收件箱 HANDOFF、心跳、manifest、审查投票
+- **Hub** ↔ GitHub：项目绑定 `owner/repo`（本地工作区自动扫描 + 可选 API）
+- **Cursor / Trae** ↔ Hub：MCP 工具、Hooks 自动回传对话摘要到飞书
 
-## 后续可扩展（非必须）
+---
 
-- Git Webhook → 飞书机器人：新 push / 新 PR 时群通知。
-- 与 `../AI协作记录.md` 的字段对齐，便于周报汇总。
+## 快速开始
 
-如有新脚本或配置，建议放在本目录下子文件夹（如 `scripts/`、`feishu-bot/`），并在本 README 增加一节说明。
+### 1. 克隆 & 安装
+
+```bash
+git clone https://github.com/L-bit1/unifier.git
+cd unifier
+./scripts/setup.sh
+```
+
+### 2. 配置（各填各的，勿提交 Git）
+
+| 文件 | 内容 |
+|------|------|
+| `hub/.env` | 飞书 `FEISHU_APP_ID` / `FEISHU_APP_SECRET` |
+| `config/local.env` | 本地项目目录、设备 ID（从 `config/local.env.example` 复制） |
+
+详细步骤 → **[INSTALL.md](INSTALL.md)**
+
+### 3. 启动（Hub 所在机器，通常是一台常开的 Mac）
+
+```bash
+cd hub
+./scripts/start-services.sh
+```
+
+### 4. 各开发机接入
+
+```bash
+export HUB_URL=http://<Hub-IP>:8787
+export DEVICE_ID=my-mac          # 每台机器唯一
+export AGENT_ID=cursor           # 或 trae
+./scripts/start-workstation.sh
+```
+
+### 5. 飞书群里
+
+```text
+项目              → 扫描 GitHub / 本地仓库，卡片选项目
+选 my-app         → 文字选择项目
+修复登录超时       → 派活到已选仓库
+状态 3            → 查任务进度
+联通              → 看哪些设备在线
+```
+
+---
+
+## 核心能力
+
+1. **飞书指挥台** — 手机发任务、选项目、收状态与 AI 回复  
+2. **多设备协作** — Mac / Win 注册在线，Cursor + Trae 各司其职  
+3. **审查闸门** — 多 Agent 全票 `approved` 后才 `merge_ready`  
+4. **变更留痕** — ChangeManifest 记录每次 Agent 提交摘要  
+5. **项目发现** — 扫描本地 Git 目录 + 可选 GitHub API，飞书卡片一键选择  
+
+---
+
+## 仓库结构
+
+```text
+unifier/
+├── README.md              ← 你在这里
+├── INSTALL.md             ← 部署手册
+├── hub/                   ← FastAPI Hub（可运行主体）
+│   ├── app/               ← API、飞书、任务状态机
+│   ├── scripts/           ← 桥接、Agent、一键启动
+│   └── mcp_server/        ← Cursor/Trae MCP 工具
+├── config/                ← MCP 示例 + local.env 模板
+├── scripts/setup.sh       ← 首次安装
+└── docs/decisions/        ← 产品决策记录
+```
+
+---
+
+## 技术栈
+
+- **Hub**：Python · FastAPI · SQLite · SQLAlchemy  
+- **飞书**：长连接事件 + 卡片回调（`lark-cli` / `lark-oapi`）  
+- **Agent**：轻量 Python 轮询 + 本地 `~/.unifier/inbox/` HANDOFF  
+- **IDE**：Cursor Hooks · Trae 规则 · MCP  
+
+API 文档：启动 Hub 后访问 `http://127.0.0.1:8787/docs`
+
+---
+
+## 边界说明
+
+| ✅ 做 | ❌ 不做 |
+|------|--------|
+| 编排飞书 ↔ 多 IDE ↔ GitHub | 替代 Git 托管 |
+| 审查状态与 merge 闸门 | 再造完整 Code Review 平台 |
+| 设备在线与任务投递 | 完全遥控 IDE 内部 UI |
+
+---
+
+## 路线图
+
+| 版本 | 内容 |
+|------|------|
+| **v0.2**（当前） | Hub + 飞书 Bot + Device Agent + 审查状态机 + 项目卡片 |
+| v0.3 | GitHub Webhook → 飞书通知 · 审查摘要自动生成 |
+| v1 | 可选「先审 patch 再 push」· 审计周报 |
+
+---
+
+## 安全
+
+- 密钥只放本机 `hub/.env`，**永远不要**提交到 Git  
+- GitHub PAT 最小权限（repo 只读即可）  
+- 飞书应用 scope 与群—仓库按需绑定  
+
+---
+
+## 参与 & 文档
+
+- 安装问题 → [INSTALL.md](INSTALL.md)  
+- Hub API → [hub/README.md](hub/README.md)  
+- 产品决策 → [docs/decisions/](docs/decisions/)  
+
+---
+
+## License
+
+[MIT](LICENSE) © 2026 L-bit1

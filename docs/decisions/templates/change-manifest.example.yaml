@@ -1,0 +1,35 @@
+# ChangeManifest 示例（联合器 Agent 提交审查时附带）
+# 复制为 .unifier/manifests/<timestamp>-<agent-id>.yaml 或随 PR 描述附上
+
+task_id: task-42
+session_id: session-2026-05-19-001
+agent_id: mac-cursor-1
+device_id: mac-home
+role: implementer          # implementer | reviewer | tester | ...
+timestamp: 2026-05-19T14:30:00+08:00
+
+github:
+  owner: your-org
+  repo: your-repo
+  branch: feature/agent-1-task-42
+  base_commit: abc123def456
+  head_commit: fedcba987654    # 若尚未 push，可省略 head_commit
+
+summary: |
+  一句话说明本次改动目的（例：调整 nginx 超时与 upstream 健康检查）。
+
+files:
+  - path: deploy/nginx.conf
+    change_type: modified    # added | modified | deleted | renamed
+    rationale: 降低 upstream 502 概率
+
+review:
+  required_reviewers:
+    - agent-2
+    - agent-3
+    - agent-4
+  approvals: []              # 由 Hub 或 reviewer Agent 填写
+  # - agent_id: agent-2
+  #   status: approved         # approved | changes_requested
+  #   at: 2026-05-19T15:00:00+08:00
+  #   note: LGTM

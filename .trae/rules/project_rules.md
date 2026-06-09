@@ -1,33 +1,11 @@
----
-description: 「联合器」专属协作与密钥规则（Trae）
-alwaysApply: true
----
+# 联合器 · Trae 规则
 
-# 联合器（Trae）
+与 Cursor 规则对齐，见 `.cursor/rules/collaboration-git.mdc` 与根目录 `INSTALL.md`。
 
-## 本项目定位（自动生成，请你人工复核后微调）
+## 定位
 
-- **类型**：通用项目
-- **主要改动范围**：
-  - 以本仓库 README 或入口脚本为准
+独立协作编排工具；个人路径写在 `config/local.env`，勿提交。
 
-## 开工前
+## Trae 自动回复
 
-- 阅读本仓库 `README.md`（若有）与入口文档；与对话冲突时以仓库文件为准。
-- 跨设备：开工 `git pull`，可分享时 `git commit` / `git push`。
-
-## 密钥与凭证（仅 Mac）
-
-- **主密钥与生产凭证只存放在本机 Mac**（含飞书 Secret、API Key、SSH 私钥、`.env` / `.env.local`）；须 `.gitignore`。
-- **Cursor / Windows**：不写与 Mac 同等权限的主密钥；仅用占位或子账号。
-- 禁止在仓库、飞书、PR、对话中粘贴真实密钥。
-
-## 提交与范围
-
-- 只改当前任务相关文件；提交信息建议 Conventional Commits。
-- 勿提交 `node_modules`、构建产物、数据库转储、大二进制。
-
-## 与另一 IDE 对齐
-
-- 任务结论写入 `HANDOFF.md` 或 `docs/` 约定文件后再改代码；需要对方配合时在文档中写明。
-
+见 `unifier-auto-reply.md`；设置 `UNIFIER_DEVICE_ID`、`UNIFIER_AGENT_ID`、`HUB_URL`。

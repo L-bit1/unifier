@@ -1,0 +1,15 @@
+.DS_Store
+*.pyc
+__pycache__/
+
+# 密钥与个人配置（每人本机一份）
+config/local.env
+hub/.env
+
+# 运行时数据
+hub/data/
+hub/.venv/
+*.db
+
+# 本机 Agent 状态（在用户 home，此处仅防误提交）
+.unifier/
