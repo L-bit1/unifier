@@ -408,16 +408,57 @@ cd hub && UNIFIER_DEVICE_ID=mac-a UNIFIER_AGENT_ID=cursor ./scripts/run-mcp.sh
 
 ---
 
+## n8n 自动化套件（v0.3）
+
+联合器内置 **n8n 自动化引擎**（NAS 式可选套件）：Hub 任务事件自动推送到 n8n，n8n 可反向调用 Hub API 派活或联动 GitHub / 邮件等。
+
+### 启用
+
+```bash
+# hub/.env
+N8N_ENABLED=true
+N8N_URL=http://127.0.0.1:5678
+N8N_WEBHOOK_PATH=unifier-events
+
+cd hub
+./scripts/start-services.sh    # Hub + 飞书桥 + n8n（需 Docker）
+```
+
+### 导入预置工作流
+
+```bash
+# n8n 面板创建 API Key 后写入 N8N_API_KEY
+./scripts/import-n8n-workflows.sh
+```
+
+详见 [`workflows/README.md`](workflows/README.md)。
+
+### API
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/v1/automation/stack` | Head 套件总览（Hub + 灵魂栈 + n8n） |
+| GET | `/api/v1/automation/connectors` | Connector 列表 |
+| GET | `/api/v1/automation/n8n/health` | n8n 在线状态 |
+| POST | `/api/v1/automation/n8n/test-event` | 发送测试事件到 n8n |
+
+飞书群里：`套件` · `自动化` · `栈`
+
+---
+
 ## 目录结构
 
 ```text
 hub/
 ├── app/              # FastAPI 应用
 ├── data/             # SQLite（gitignore）
+├── docker-compose.yml  # n8n 套件（可选）
+├── workflows/        # n8n 预置工作流模板
 ├── scripts/
 │   ├── device-agent.py       # Device Agent 轮询 + HANDOFF
 │   ├── dispatch-command.sh   # 模拟手机下命令
 │   ├── feishu-bridge.py      # 飞书长连接 → Hub
+│   ├── import-n8n-workflows.sh
 │   ├── run-mcp.sh            # MCP Server（Cursor/Trae）
 │   ├── submit-agent-reply.sh # Cursor/Trae 回复 → 飞书
 │   ├── start-workstation.sh  # 注册 + 心跳 + Agent

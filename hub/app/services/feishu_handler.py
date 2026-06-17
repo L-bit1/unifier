@@ -13,9 +13,12 @@ from app.services.orchestrate import command_status, dispatch_command
 
 
 DISPATCH_PREFIXES = ("派活", "/task", "/dispatch")
+SOUL_PREFIXES = ("灵魂", "/soul", "问灵魂", "soul:")
 REPLY_PREFIXES = ("回复", "/reply")
 STATUS_PREFIXES = ("状态", "/status")
 CONNECT_PREFIXES = ("联通", "/connectivity", "在线")
+STACK_PREFIXES = ("套件", "/stack", "灵魂栈", "四项目健康", "栈")
+AUTOMATION_PREFIXES = ("自动化", "/automation", "n8n")
 SLOT_PREFIXES = ("选配", "/slots", "阵容")
 PROJECT_PREFIXES = ("项目", "/projects", "项目列表")
 SELECT_PREFIXES = ("选", "/select", "选择")
@@ -29,6 +32,15 @@ def _strip_bot_mention(text: str) -> str:
 def _starts_with_any(text: str, prefixes: tuple[str, ...]) -> bool:
     raw = _strip_bot_mention(text).strip()
     return any(raw.startswith(p) for p in prefixes)
+
+
+def _parse_soul_message(text: str) -> str | None:
+    raw = _strip_bot_mention(text).strip()
+    for prefix in SOUL_PREFIXES:
+        if raw.startswith(prefix):
+            msg = raw[len(prefix) :].lstrip(":： ").strip()
+            return msg or None
+    return None
 
 
 def _parse_dispatch(
@@ -53,6 +65,9 @@ def _parse_dispatch(
             + PROJECT_PREFIXES
             + SELECT_PREFIXES
             + CURRENT_PREFIXES
+            + SOUL_PREFIXES
+            + STACK_PREFIXES
+            + AUTOMATION_PREFIXES
         )
         if any(raw.startswith(p) for p in blocked):
             return None
@@ -244,6 +259,53 @@ def handle_im_message_event(db: Session, event: dict[str, Any]) -> FeishuReply |
 
         return FeishuReply(text="📡 设备联通性\n" + format_connectivity_message(report))
 
+    if any(content.strip().startswith(p) for p in AUTOMATION_PREFIXES):
+        from app.services.n8n_bridge import n8n_health_sync
+
+        n8n = n8n_health_sync()
+        lines = [
+            "⚙️ n8n 自动化",
+            f"启用: {'是' if n8n.get('enabled') else '否'}",
+            f"状态: {'✅ 在线' if n8n.get('ok') else '❌ 离线/未启用'}",
+            f"面板: {n8n.get('url', settings.n8n_url)}",
+        ]
+        if settings.n8n_webhook_url:
+            lines.append(f"Webhook: {settings.n8n_webhook_url}")
+        lines.append("\n在 n8n 中导入 hub/workflows/ 预置流后，Hub 任务事件会自动推送。")
+        return FeishuReply(text="\n".join(lines))
+
+    if any(content.strip().startswith(p) for p in STACK_PREFIXES):
+        from app.services.n8n_bridge import n8n_health_sync
+        from app.services.soul_bridge import stack_health_sync
+
+        stack = stack_health_sync()
+        n8n = n8n_health_sync()
+        lines = [
+            f"📦 Head 套件 · {stack.get('overall', '?')}",
+            f"session: {stack.get('session_id')}",
+        ]
+        for name, comp in (stack.get("components") or {}).items():
+            ok = "✅" if comp.get("ok") else "❌"
+            lines.append(f"{ok} {name}: {comp.get('url') or comp.get('error', '')}")
+        if settings.n8n_enabled:
+            ok = "✅" if n8n.get("ok") else "❌"
+            lines.append(f"{ok} n8n_automation: {n8n.get('url')}")
+        return FeishuReply(text="\n".join(lines))
+
+    soul_msg = _parse_soul_message(content)
+    if soul_msg is not None:
+        from app.services.soul_bridge import soul_chat_sync
+
+        result = soul_chat_sync(message=soul_msg)
+        if result.get("ok"):
+            reply = (result.get("reply") or "").strip() or "(空回复)"
+            if len(reply) > 3500:
+                reply = reply[:3500] + "…"
+            return FeishuReply(text=f"🧠 自研AI\n{reply}")
+        return FeishuReply(
+            text=f"灵魂层不可用: {result.get('detail') or result.get('error') or result.get('http_status')}"
+        )
+
     task_id = _parse_status(content)
     if task_id is not None:
         from app.models import Task
@@ -300,6 +362,9 @@ def handle_im_message_event(db: Session, event: dict[str, Any]) -> FeishuReply |
 
     status = command_status(task, db)
     repo_label = f"{parsed['github_owner']}/{parsed['github_repo']}"
+    from app.services.event_bus import emit_event
+
+    emit_event("task.dispatched", task=task, db=db)
     return FeishuReply(
         text="✅ 任务已创建\n"
         + f"项目：{repo_label}\n"

@@ -188,6 +188,18 @@ def submit_manifest(
     db.refresh(task)
     summary = str(body.payload.get("summary", "已提交变更清单"))
     notify_manifest(task, body.device_id, body.agent_id, summary)
+    from app.services.event_bus import emit_event
+
+    emit_event(
+        "task.manifest_submitted",
+        task=task,
+        db=db,
+        extra={
+            "agent_id": body.agent_id,
+            "device_id": body.device_id,
+            "summary": summary,
+        },
+    )
     return ManifestOut(
         id=manifest.id,
         task_id=manifest.task_id,
@@ -235,10 +247,10 @@ def submit_for_review(task_id: int, db: Session = Depends(get_db)):
     task.updated_at = utcnow()
     db.commit()
     db.refresh(task)
+    from app.services.event_bus import emit_event
+
+    emit_event("task.review_started", task=task, db=db)
     return _task_out(task, db)
-
-
-@router.post("/{task_id}/reviews", response_model=TaskOut)
 def submit_review(
     task_id: int, body: ReviewSubmit, db: Session = Depends(get_db)
 ):
@@ -270,9 +282,24 @@ def submit_review(
 
     summary = review_summary(task, db)
     notify_review(task, body.reviewer_agent_id, body.status, body.note)
+    from app.services.event_bus import emit_event
+
+    emit_event(
+        "task.review_submitted",
+        task=task,
+        db=db,
+        extra={
+            "reviewer_agent_id": body.reviewer_agent_id,
+            "review_status": body.status,
+            "note": body.note,
+        },
+    )
     if summary["merge_ready"]:
         status = command_status(task, db)
         notify_task_async(task, "🎉 审查全票通过\n" + status["message"])
+        emit_event("task.merge_ready", task=task, db=db)
+    elif summary["rejected"]:
+        emit_event("task.changes_requested", task=task, db=db)
     return _task_out(task, db)
 
 

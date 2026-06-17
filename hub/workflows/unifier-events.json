@@ -1,0 +1,82 @@
+{
+  "name": "联合器 · 事件接收",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "unifier-events",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "a1b2c3d4-webhook-unifier",
+      "name": "联合器事件",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "unifier-events"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "evt",
+              "name": "event",
+              "value": "={{ $json.body.event }}",
+              "type": "string"
+            },
+            {
+              "id": "task",
+              "name": "task_id",
+              "value": "={{ $json.body.data.task_id }}",
+              "type": "number"
+            },
+            {
+              "id": "title",
+              "name": "title",
+              "value": "={{ $json.body.data.title }}",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "value": "={{ $json.body.data.status }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2c3d4e5-set-fields",
+      "name": "解析事件",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [220, 0]
+    }
+  ],
+  "connections": {
+    "联合器事件": {
+      "main": [
+        [
+          {
+            "node": "解析事件",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": [
+    {
+      "name": "unifier"
+    }
+  ]
+}

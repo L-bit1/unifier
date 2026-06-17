@@ -162,8 +162,9 @@ API 文档：启动 Hub 后访问 `http://127.0.0.1:8787/docs`
 
 | 版本 | 内容 |
 |------|------|
-| **v0.2**（当前） | Hub + 飞书 Bot + Device Agent + 审查状态机 + 项目卡片 |
-| v0.3 | GitHub Webhook → 飞书通知 · 审查摘要自动生成 |
+| **v0.2** | Hub + 飞书 Bot + Device Agent + 审查状态机 + 项目卡片 |
+| **v0.3**（进行中） | n8n 自动化套件 · Hub 事件出站 · Head 套件总览 API |
+| v0.3+ | GitHub Webhook → n8n/飞书 · 审查摘要自动生成 |
 | v1 | 可选「先审 patch 再 push」· 审计周报 |
 
 ---

@@ -84,6 +84,9 @@ def dispatch(body: CommandDispatch, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
 
     status = command_status(task, db)
+    from app.services.event_bus import emit_event
+
+    emit_event("task.dispatched", task=task, db=db)
     return DispatchOut(
         task_id=task.id,
         project_id=project.id,

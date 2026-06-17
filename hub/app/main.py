@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
-from app.routers import agent_slots, devices, feishu, orchestrate, projects, tasks
+from app.routers import agent_slots, automation, devices, feishu, orchestrate, projects, soul, tasks
 
 
 @asynccontextmanager
@@ -31,17 +31,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(automation.router)
 app.include_router(devices.router)
 app.include_router(agent_slots.router)
 app.include_router(projects.router)
 app.include_router(tasks.router)
 app.include_router(orchestrate.router)
 app.include_router(feishu.router)
+app.include_router(soul.router)
 
 
 @app.get("/health")
 def health():
-    return {"ok": True, "service": "unifier-hub"}
+    return {"ok": True, "service": "unifier-hub", "soul_api": "/soul/health"}
 
 
 @app.get("/")

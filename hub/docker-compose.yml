@@ -1,0 +1,24 @@
+# 联合器 Hub + n8n 自动化套件（可选）
+# 用法: cd hub && docker compose up -d n8n
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: unifier-n8n
+    restart: unless-stopped
+    ports:
+      - "${N8N_PORT:-5678}:5678"
+    environment:
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - GENERIC_TIMEZONE=Asia/Shanghai
+      - TZ=Asia/Shanghai
+      # Hub 与本机访问 Webhook 时使用（局域网 Head 可改成实际 IP）
+      - WEBHOOK_URL=${N8N_WEBHOOK_URL:-http://127.0.0.1:5678/}
+      - N8N_SECURE_COOKIE=false
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:

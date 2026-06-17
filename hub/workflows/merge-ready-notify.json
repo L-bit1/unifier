@@ -1,0 +1,105 @@
+{
+  "name": "联合器 · merge_ready 通知",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "unifier-events",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "wh-merge-ready",
+      "name": "联合器事件",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "unifier-events"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "merge-ready-filter",
+              "leftValue": "={{ $json.body.event }}",
+              "rightValue": "task.merge_ready",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-merge-ready",
+      "name": "仅 merge_ready",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "msg",
+              "name": "message",
+              "value": "=任务 #{{ $json.body.data.task_id }}「{{ $json.body.data.title }}」审查全票通过，可合并。",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fmt-message",
+      "name": "格式化通知",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [480, -20]
+    }
+  ],
+  "connections": {
+    "联合器事件": {
+      "main": [
+        [
+          {
+            "node": "仅 merge_ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "仅 merge_ready": {
+      "main": [
+        [
+          {
+            "node": "格式化通知",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": [
+    {
+      "name": "unifier"
+    }
+  ]
+}

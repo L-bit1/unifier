@@ -37,8 +37,25 @@ else
   fi
 fi
 
+# n8n 自动化（可选：hub/.env 设 N8N_ENABLED=true）
+if [[ "${N8N_ENABLED:-false}" == "true" ]]; then
+  if docker compose -f "${HUB_DIR}/docker-compose.yml" ps n8n 2>/dev/null | grep -q "running"; then
+    echo "n8n 已在运行"
+  elif command -v docker >/dev/null 2>&1; then
+    echo "启动 n8n → docker compose (端口 ${N8N_PORT:-5678})"
+    docker compose -f "${HUB_DIR}/docker-compose.yml" up -d n8n
+  else
+    echo "跳过 n8n（未安装 docker；可手动运行 n8n 并设 N8N_URL）"
+  fi
+else
+  echo "n8n 未启用（hub/.env 设 N8N_ENABLED=true 可随 Hub 一起启动）"
+fi
+
 echo ""
 echo "✅ 服务已启动"
 echo "  Hub:    http://127.0.0.1:${UNIFIER_PORT:-8787}/docs"
+if [[ "${N8N_ENABLED:-false}" == "true" ]]; then
+  echo "  n8n:    http://127.0.0.1:${N8N_PORT:-5678}"
+fi
 echo "  日志:   ${LOG_DIR}/"
 echo "  工作站: DEVICE_ID=<你的设备> AGENT_ID=cursor ./scripts/start-workstation.sh"

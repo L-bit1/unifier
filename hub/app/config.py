@@ -32,6 +32,24 @@ class Settings(BaseSettings):
     feishu_default_reviewers: str = ""
     feishu_bridge_enabled: bool = False
 
+    # 四项目灵魂栈（Mac Head / 机房 Head）
+    custom_ai_url: str = "http://127.0.0.1:8200"
+    aether_url: str = "http://127.0.0.1:8100"
+    lab_queue_url: str = "http://127.0.0.1:8790"
+    custom_ai_session_id: str = "soul-unified"
+
+    # n8n 自动化引擎（NAS 式套件：可选启用）
+    n8n_enabled: bool = False
+    n8n_url: str = "http://127.0.0.1:5678"
+    n8n_webhook_path: str = "unifier-events"
+    n8n_api_key: str | None = None
+
+    @property
+    def n8n_webhook_url(self) -> str:
+        if not self.n8n_enabled:
+            return ""
+        return f"{self.n8n_url.rstrip('/')}/webhook/{self.n8n_webhook_path.lstrip('/')}"
+
     @property
     def feishu_configured(self) -> bool:
         return bool(self.feishu_app_id and self.feishu_app_secret)
