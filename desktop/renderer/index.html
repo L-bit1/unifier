@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Unifier 联合器</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>联合器 Unifier</h1>
+    <p id="edition-badge" class="badge">个人版</p>
+  </header>
+
+  <section class="card">
+    <h2>本机常驻</h2>
+    <p class="hint">关窗不退出：服务挂在菜单栏托盘。手机遥控依赖 Hub + 收件箱 + 心跳同时在线。</p>
+    <div class="row">
+      <button id="btn-start-personal" class="primary">启动 / 重启（Hub+收件箱+心跳）</button>
+      <button id="btn-stop">停止服务</button>
+    </div>
+    <p id="daemon-status" class="status">守护进程：检测中…</p>
+    <p id="hub-status" class="status">Hub：检测中…</p>
+    <p id="device-status" class="hint"></p>
+    <label class="check">
+      <input type="checkbox" id="open-at-login" />
+      开机自启（隐藏到托盘）
+    </label>
+  </section>
+
+  <section class="card">
+    <h2>让手机在外面也能用</h2>
+    <p class="hint">打开后，不在同一 Wi‑Fi 也能用手机 App。请保持本应用在电脑上运行。</p>
+    <div class="row">
+      <button id="btn-remote-on" class="primary">打开</button>
+      <button id="btn-remote-off">关闭</button>
+      <button id="btn-remote-copy">复制给手机</button>
+    </div>
+    <p id="remote-status" class="status">状态：未打开</p>
+    <pre id="remote-card" class="remote-card">打开后，这里会出现要粘贴到手机上的连接信息。</pre>
+    <p id="remote-msg" class="hint"></p>
+  </section>
+
+  <section class="card" id="enterprise-section">
+    <h2>企业版激活</h2>
+    <label>远程 Hub URL</label>
+    <input id="hub-url" type="url" placeholder="https://unifier.company.com:8787" />
+    <label>设备 ID</label>
+    <input id="device-id" type="text" placeholder="mac-a" />
+    <label>License Key</label>
+    <input id="license-key" type="text" placeholder="UNIFIER-ENT-XXXXXXXXXXXXXXXX" />
+    <button id="btn-activate">激活企业版</button>
+    <button id="btn-start-enterprise">启动企业工作站</button>
+    <p id="license-msg" class="hint"></p>
+  </section>
+
+  <section class="card">
+    <h2>快捷入口</h2>
+    <p>Hub 控制台：<a id="hub-link" href="http://127.0.0.1:8787" target="_blank">http://127.0.0.1:8787</a></p>
+    <button id="btn-open-hub" type="button">在浏览器打开 Hub</button>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>

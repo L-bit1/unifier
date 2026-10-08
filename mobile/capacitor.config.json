@@ -1,0 +1,11 @@
+{
+  "appId": "com.lbit1.unifier",
+  "appName": "联合器",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

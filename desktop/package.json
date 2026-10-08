@@ -1,0 +1,65 @@
+{
+  "name": "unifier-desktop",
+  "version": "0.1.0",
+  "description": "联合器 Unifier — 个人版 Hub 主机 / 企业版工作站",
+  "author": "L-bit1",
+  "license": "SEE LICENSE IN REPO",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "start:personal": "UNIFIER_EDITION=personal electron .",
+    "start:enterprise": "UNIFIER_EDITION=enterprise electron .",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:all": "electron-builder --mac --win"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.lbit1.unifier",
+    "productName": "Unifier",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "electron/**/*",
+      "renderer/**/*",
+      "runtime/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../hub",
+        "to": "unifier-hub",
+        "filter": [
+          "**/*",
+          "!.venv/**",
+          "!data/**",
+          "!**/__pycache__/**",
+          "!**/*.pyc"
+        ]
+      },
+      {
+        "from": "../config",
+        "to": "unifier-config",
+        "filter": ["**/*", "!local.env"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "target": ["dmg", "zip"],
+      "artifactName": "Unifier-${version}-mac-${arch}.${ext}"
+    },
+    "win": {
+      "target": ["nsis"],
+      "artifactName": "Unifier-${version}-win-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

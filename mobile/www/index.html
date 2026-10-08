@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#FFFFFF" />
+  <title>联合器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <button type="button" class="icon-round" id="btnSettings" aria-label="选择项目">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <path d="M4 7h10M4 12h16M4 17h12"/>
+        </svg>
+      </button>
+      <button type="button" class="icon-round" id="btnNewChat" aria-label="设置与邀请">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="8" r="3.2"/>
+          <path d="M5 19c1.5-3.2 3.8-5 7-5s5.5 1.8 7 5"/>
+          <path d="M18 7v4M16 9h4"/>
+        </svg>
+      </button>
+    </header>
+
+    <div id="projectBar" class="project-bar hidden">
+      <span id="currentProject">未选项目</span>
+    </div>
+
+    <main class="stage">
+      <section id="welcome" class="welcome">
+        <div class="welcome-mark" aria-hidden="true">
+          <img src="assets/logo.png" alt="" width="72" height="72" class="welcome-logo" />
+        </div>
+        <h1>开始派活吧</h1>
+        <div class="modes" id="modes" role="tablist">
+          <button type="button" class="mode active" data-cmd="项目" data-action="drawer" role="tab" aria-selected="true">
+            <svg class="mode-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h14"/></svg>
+            项目
+          </button>
+          <button type="button" class="mode" data-cmd="联通" role="tab" aria-selected="false">
+            <svg class="mode-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            联通
+          </button>
+          <button type="button" class="mode" data-cmd="帮助" role="tab" aria-selected="false">
+            <svg class="mode-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1.5 1-1.5 2.2M12 17h.01"/></svg>
+            帮助
+          </button>
+        </div>
+        <p class="mode-hint" id="modeHint">点左上角选择项目，或直接发任务标题</p>
+      </section>
+
+      <div id="chat" class="chat hidden" aria-live="polite"></div>
+    </main>
+
+    <div class="composer-wrap">
+      <div class="composer-card">
+        <textarea id="input" rows="1" placeholder="发指令或任务标题…" enterkeyhint="send"></textarea>
+        <div class="composer-tools">
+          <div class="tool-chips">
+            <button type="button" class="chip" data-cmd="当前项目">当前项目</button>
+            <button type="button" class="chip" data-cmd="选配">选配</button>
+            <button type="button" class="chip" data-cmd="状态">状态</button>
+          </div>
+          <button type="button" class="send-btn" id="btnSend" aria-label="发送" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3.4 20.6 21 12 3.4 3.4l.1 6.8L15 12 3.5 13.8z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <p class="hub-foot" id="hubLabel">未连接 Hub</p>
+    </div>
+  </div>
+
+  <!-- 左侧：项目抽屉（对齐 DeepSeek 侧栏） -->
+  <div id="drawerBackdrop" class="drawer-backdrop" hidden></div>
+  <aside id="projectDrawer" class="drawer" aria-hidden="true">
+    <div class="drawer-search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3-3"/></svg>
+      <input id="projectSearch" type="search" placeholder="搜索项目…" autocomplete="off" />
+    </div>
+    <div class="drawer-scroll">
+      <p class="drawer-section" id="projectSectionLabel">全部项目</p>
+      <ul id="projectList" class="drawer-list"></ul>
+      <button type="button" class="drawer-new" id="btnClearChat">新对话</button>
+    </div>
+    <div class="drawer-foot">
+      <div class="drawer-user">
+        <img class="avatar" src="assets/logo.png" alt="" width="34" height="34" />
+        <div class="drawer-user-meta">
+          <strong id="drawerUserName">联合器</strong>
+          <span id="drawerSessionHint">会话 default</span>
+        </div>
+      </div>
+      <button type="button" class="icon-round" id="btnDrawerMore" aria-label="更多设置">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- 右侧按钮：设置 + 邀请 -->
+  <dialog id="settingsDialog" class="sheet">
+    <form method="dialog" class="sheet-body">
+      <h2>设置</h2>
+      <p class="sheet-lead">连接 Hub，并邀请他人加入本会话</p>
+
+      <h3 class="sheet-h3">连接电脑</h3>
+      <p class="invite-tip">在电脑联合器点「让手机在外面也能用」→ 复制 → 粘贴到下方。</p>
+      <label for="pasteBlock">粘贴电脑复制的全部内容</label>
+      <textarea id="pasteBlock" rows="5" placeholder="【联合器 · 手机连接】&#10;电脑连接地址：…&#10;连接密码：…"></textarea>
+      <button type="button" id="btnParsePaste" class="ghost">从粘贴内容填入</button>
+      <label for="hubUrl">电脑连接地址</label>
+      <input id="hubUrl" placeholder="https://… 或 http://192.168.x.x:8787" />
+      <label for="accessToken">连接密码（异网需要；家里 Wi‑Fi 可留空）</label>
+      <input id="accessToken" placeholder="连接密码" autocomplete="off" />
+      <label for="sessionId">会话 ID</label>
+      <input id="sessionId" placeholder="default" />
+      <div class="row-actions">
+        <button type="button" id="btnSaveSettings" class="solid">保存并检测</button>
+      </div>
+      <pre id="healthResult" class="result"></pre>
+
+      <h3 class="sheet-h3">邀请加入聊天</h3>
+      <p class="invite-tip">对方在 App 设置里填入同一 Hub 与会话 ID，即可共享项目上下文。</p>
+      <label for="inviteName">对方备注（可选）</label>
+      <input id="inviteName" placeholder="例如：同事 A" />
+      <div class="invite-box">
+        <code id="inviteCode"></code>
+      </div>
+      <div class="row-actions">
+        <button type="button" id="btnCopyInvite" class="solid">复制邀请信息</button>
+        <button value="cancel" class="ghost">关闭</button>
+      </div>
+      <p id="inviteCopied" class="invite-ok hidden">已复制到剪贴板</p>
+    </form>
+  </dialog>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">联合器</string>
+    <string name="title_activity_main">联合器</string>
+    <string name="package_name">com.lbit1.unifier</string>
+    <string name="custom_url_scheme">com.lbit1.unifier</string>
+</resources>

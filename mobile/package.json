@@ -1,0 +1,22 @@
+{
+  "name": "unifier-mobile",
+  "version": "0.1.0",
+  "description": "联合器 Unifier 手机遥控端（Android）",
+  "private": true,
+  "scripts": {
+    "sync": "npx cap sync android",
+    "open:android": "npx cap open android",
+    "build:apk": "npm run sync && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/preferences": "^6.0.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.2.0"
+  },
+  "capacitor": {
+    "platforms": ["android"]
+  }
+}
