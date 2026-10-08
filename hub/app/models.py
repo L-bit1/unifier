@@ -98,6 +98,11 @@ class Manifest(Base):
     agent_id: Mapped[str] = mapped_column(String(128))
     device_id: Mapped[str] = mapped_column(String(128))
     payload_json: Mapped[str] = mapped_column(Text)
+    # 意图记忆：为什么改、思维链摘要、来源通道消息
+    intent: Mapped[str | None] = mapped_column(Text, nullable=True)
+    cot_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    channel: Mapped[str] = mapped_column(String(32), default="feishu", index=True)
+    channel_message_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
     submitted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow
     )
@@ -171,3 +176,118 @@ class DeviceAgentSlot(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
     )
+
+
+class Workflow(Base):
+    """内置可视化工作流（路线 B：单进程自动化引擎）。"""
+
+    __tablename__ = "workflows"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(256))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    graph_json: Mapped[str] = mapped_column(Text)
+    active: Mapped[bool] = mapped_column(default=False, index=True)
+    trigger_kind: Mapped[str] = mapped_column(String(32), default="hub_event")
+    hook_id: Mapped[str | None] = mapped_column(String(32), unique=True, nullable=True)
+    schedule_cron: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    preset_key: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+    runs: Mapped[list[WorkflowRun]] = relationship(back_populates="workflow")
+
+
+class WorkflowRun(Base):
+    __tablename__ = "workflow_runs"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    workflow_id: Mapped[int] = mapped_column(ForeignKey("workflows.id"), index=True)
+    status: Mapped[str] = mapped_column(String(32), default="running")
+    trigger_type: Mapped[str] = mapped_column(String(32), default="manual")
+    trigger_event: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    input_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    output_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    finished_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    workflow: Mapped[Workflow] = relationship(back_populates="runs")
+
+
+class DialogueRoom(Base):
+    """圆桌对话房间：Cursor / Trae 等同场互读互回（独立于 Task 状态机）。"""
+
+    __tablename__ = "dialogue_rooms"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    project_key: Mapped[str] = mapped_column(String(128), default="maotai", index=True)
+    title: Mapped[str] = mapped_column(String(512))
+    status: Mapped[str] = mapped_column(String(32), default="open", index=True)  # open|closed
+    current_round: Mapped[int] = mapped_column(default=1)
+    # JSON 列表：参与 Agent，如 ["cursor","trae"]
+    participants_json: Mapped[str] = mapped_column(Text, default='["cursor","trae"]')
+    round_opened_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    round_complete: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+    closed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    messages: Mapped[list[DialogueMessage]] = relationship(
+        back_populates="room", order_by="DialogueMessage.id"
+    )
+    acks: Mapped[list[DialogueAck]] = relationship(back_populates="room")
+
+    @property
+    def participants(self) -> list[str]:
+        return json.loads(self.participants_json or "[]")
+
+    @participants.setter
+    def participants(self, value: list[str]) -> None:
+        self.participants_json = json.dumps(value, ensure_ascii=False)
+
+
+class DialogueMessage(Base):
+    __tablename__ = "dialogue_messages"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    room_id: Mapped[int] = mapped_column(ForeignKey("dialogue_rooms.id"), index=True)
+    round: Mapped[int] = mapped_column(index=True)
+    role: Mapped[str] = mapped_column(String(32))  # user|agent|system
+    participant: Mapped[str] = mapped_column(String(128))  # user|cursor|trae|…
+    body: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow
+    )
+
+    room: Mapped[DialogueRoom] = relationship(back_populates="messages")
+
+
+class DialogueAck(Base):
+    """某参与者已读到的最大 message_id。"""
+
+    __tablename__ = "dialogue_acks"
+    __table_args__ = (UniqueConstraint("room_id", "participant"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    room_id: Mapped[int] = mapped_column(ForeignKey("dialogue_rooms.id"), index=True)
+    participant: Mapped[str] = mapped_column(String(128))
+    last_seen_message_id: Mapped[int] = mapped_column(default=0)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+    room: Mapped[DialogueRoom] = relationship(back_populates="acks")

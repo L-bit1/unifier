@@ -4,14 +4,12 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.config import settings
+from app.channels.registry import get_channel_adapter, list_channel_adapters
 from app.database import get_db
-from app.services.feishu import FeishuError, feishu_client
-from app.services.feishu_handler import handle_im_message_event
-from app.services.feishu_projects import FeishuReply, handle_card_action
+from app.services.feishu_projects import handle_card_action
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +33,7 @@ class FeishuEventOut(BaseModel):
     reply: str | None = None
     card: dict | None = None
     message_id: str | None = None
+    channel: str = "feishu"
 
 
 class FeishuCardActionOut(BaseModel):
@@ -42,53 +41,31 @@ class FeishuCardActionOut(BaseModel):
     card: dict | None = None
 
 
-async def _send_feishu_reply(
-    event: dict[str, Any],
-    reply: FeishuReply,
-) -> str | None:
-    message_id = event.get("message_id")
-    chat_id = event.get("chat_id")
-    sent_id: str | None = None
-    if not settings.feishu_configured:
-        return None
-    try:
-        if reply.card:
-            if message_id:
-                sent_id = await feishu_client.reply_interactive(message_id, reply.card)
-            elif chat_id:
-                sent_id = await feishu_client.send_interactive_to_chat(chat_id, reply.card)
-        if reply.text:
-            if message_id:
-                sent_id = await feishu_client.reply_text(message_id, reply.text)
-            elif chat_id:
-                sent_id = await feishu_client.send_text_to_chat(chat_id, reply.text)
-    except FeishuError as e:
-        if chat_id and message_id and reply.text:
-            try:
-                sent_id = await feishu_client.send_text_to_chat(chat_id, reply.text)
-            except FeishuError:
-                logger.warning("飞书通知失败: %s", e)
-                raise HTTPException(status_code=502, detail=str(e))
-        else:
-            logger.warning("飞书通知失败: %s", e)
-            raise HTTPException(status_code=502, detail=str(e))
-    return sent_id
-
-
 @router.post("/events", response_model=FeishuEventOut)
 async def ingest_feishu_event(body: FeishuEventIn, db: Session = Depends(get_db)):
-    """接收 feishu-bridge 转发的 compact 事件，派活/查状态/转发 Agent 回复。"""
+    """接收 feishu-bridge 转发的 compact 事件（经 ChannelAdapter）。"""
+    adapter = get_channel_adapter("feishu")
     event: dict[str, Any] = body.model_dump(exclude_none=True)
-    reply = handle_im_message_event(db, event)
-    if not reply:
-        return FeishuEventOut(handled=False)
+    message = adapter.normalize_event(event)
+    if not message:
+        return FeishuEventOut(handled=False, channel=adapter.name)
 
-    sent_id = await _send_feishu_reply(event, reply)
+    reply = adapter.handle_message(db, message)
+    if not reply:
+        return FeishuEventOut(handled=False, channel=adapter.name)
+
+    try:
+        sent_id = await adapter.send_reply(message, reply)
+    except Exception as e:
+        logger.warning("飞书回复失败: %s", e)
+        raise HTTPException(status_code=502, detail=str(e))
+
     return FeishuEventOut(
         handled=True,
         reply=reply.text,
         card=reply.card,
         message_id=sent_id,
+        channel=adapter.name,
     )
 
 
@@ -104,8 +81,12 @@ def ingest_feishu_card_action(body: dict[str, Any], db: Session = Depends(get_db
 
 @router.get("/status")
 def feishu_integration_status():
+    from app.config import settings
+
     return {
         "configured": settings.feishu_configured,
+        "channel": "feishu",
+        "registered_channels": list_channel_adapters(),
         "default_repo": f"{settings.feishu_default_github_owner}/{settings.feishu_default_github_repo}",
         "commands": [
             "项目 — 扫描工作区/GitHub 并发送项目选择卡片",

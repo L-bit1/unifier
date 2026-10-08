@@ -1,0 +1,30 @@
+{
+  "name": "merge_ready 飞书通知",
+  "description": "审查全票通过时向任务所在飞书群发送通知",
+  "active": true,
+  "graph": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "t1",
+        "type": "trigger.hub_event",
+        "label": "merge_ready",
+        "params": {
+          "events": ["task.merge_ready"]
+        },
+        "position": { "x": 80, "y": 120 }
+      },
+      {
+        "id": "a1",
+        "type": "action.feishu",
+        "label": "通知群",
+        "params": {
+          "chat_id": "",
+          "text": "🎉 任务 #{{event.data.task_id}}「{{event.data.title}}」审查全票通过，可合并。\n{{event.data.message}}"
+        },
+        "position": { "x": 360, "y": 120 }
+      }
+    ],
+    "edges": [{ "from": "t1", "to": "a1", "output": "default" }]
+  }
+}

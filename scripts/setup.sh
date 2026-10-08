@@ -68,6 +68,8 @@ fi
 echo ""
 echo "✅ Setup 完成"
 echo ""
+echo "建议运行自检: ./scripts/health-check.sh"
+echo ""
 echo "下一步："
 echo "  1. 编辑 hub/.env 填入飞书应用凭证"
 echo "  2. 编辑 config/local.env 设置工作区路径与设备"

@@ -16,8 +16,17 @@ nohup env HUB_URL="${HUB_URL}" DEVICE_ID="${DEVICE_ID}" \
   "${SCRIPT_DIR}/heartbeat-loop.sh" >"${HOME}/.unifier/heartbeat-${DEVICE_ID}.log" 2>&1 &
 echo "heartbeat pid=$! log=${HOME}/.unifier/heartbeat-${DEVICE_ID}.log"
 
-echo "启动 Device Agent（前台，Ctrl+C 停止）..."
-exec python3 "${SCRIPT_DIR}/device-agent.py" \
-  --hub "${HUB_URL}" \
-  --device-id "${DEVICE_ID}" \
-  --agent-id "${AGENT_ID}"
+# 默认走 Inbox Auto-Runner（多 Agent）；UNIFIER_LEGACY_DEVICE_AGENT=1 则旧单 Agent
+if [[ "${UNIFIER_LEGACY_DEVICE_AGENT:-0}" == "1" ]]; then
+  echo "启动 Device Agent（前台，Ctrl+C 停止）..."
+  exec python3 "${SCRIPT_DIR}/device-agent.py" \
+    --hub "${HUB_URL}" \
+    --device-id "${DEVICE_ID}" \
+    --agent-id "${AGENT_ID}"
+fi
+
+echo "启动 Inbox Auto-Runner（前台，Ctrl+C 停止）..."
+echo "  agents=${INBOX_AUTO_AGENTS:-cursor,trae,dsh}"
+exec env HUB_URL="${HUB_URL}" DEVICE_ID="${DEVICE_ID}" \
+  INBOX_AUTO_AGENTS="${INBOX_AUTO_AGENTS:-cursor,trae,dsh}" \
+  "${SCRIPT_DIR}/run-inbox-auto.sh"

@@ -1,0 +1,46 @@
+{
+  "name": "设备离线巡检",
+  "description": "工作日 9:00 检查期望设备是否在线，离线则发飞书",
+  "active": false,
+  "graph": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "t1",
+        "type": "trigger.schedule",
+        "label": "每天 9:00",
+        "params": { "cron": "0 9 * * 1-5" },
+        "position": { "x": 80, "y": 120 }
+      },
+      {
+        "id": "c1",
+        "type": "action.hub_connectivity",
+        "label": "联通检查",
+        "params": { "expected_devices": "" },
+        "position": { "x": 320, "y": 120 }
+      },
+      {
+        "id": "a1",
+        "type": "action.feishu",
+        "label": "告警",
+        "params": {
+          "chat_id": "",
+          "text": "⚠️ 设备未全部在线，请检查 Hub 联通性。"
+        },
+        "position": { "x": 560, "y": 200 }
+      },
+      {
+        "id": "l1",
+        "type": "action.log",
+        "label": "正常",
+        "params": { "message": "设备全部在线" },
+        "position": { "x": 560, "y": 40 }
+      }
+    ],
+    "edges": [
+      { "from": "t1", "to": "c1", "output": "default" },
+      { "from": "c1", "to": "a1", "output": "false" },
+      { "from": "c1", "to": "l1", "output": "true" }
+    ]
+  }
+}

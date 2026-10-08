@@ -14,14 +14,22 @@ from mcp_server.hub_client import (
 )
 
 INSTRUCTIONS = """
-你是联合器协作控制面的 MCP 工具集。典型流程：
-1. unifier_get_my_inbox — 查看本机待执行/待审查任务
-2. 在 IDE 内完成代码或审查
-3. unifier_submit_manifest / unifier_submit_review_vote — 上报进度
-4. unifier_submit_agent_reply — 把 AI 回复摘要发回飞书群
-5. unifier_get_task_status / unifier_check_merge_ready — 查进度
+你是联合器协作控制面的 MCP 工具集。
+
+【圆桌对话】（Cursor ↔ Trae 同场互读，优先于派活任务）
+1. unifier_dialogue_list_open — 看是否有 open 房间
+2. unifier_dialogue_poll — 拉新消息；看 my_turn / hint
+3. 若 my_turn=true → unifier_dialogue_reply（本轮每人最多一条）
+4. 若 my_turn=false → 只简短说明「等待对方」，禁止长文假装已读
+5. 用户结束房间后可用 transcript 复盘
+
+【任务派活】（旧流程，仍可用）
+1. unifier_get_my_inbox → 执行/审查
+2. unifier_submit_manifest / unifier_submit_review_vote
+3. unifier_submit_agent_reply → 飞书
 
 环境变量 UNIFIER_DEVICE_ID、UNIFIER_AGENT_ID 标识本机身份（如 mac-a + cursor）。
+圆桌里的 participant 默认等于 UNIFIER_AGENT_ID（cursor / trae）。
 """.strip()
 
 mcp = FastMCP(
@@ -127,25 +135,46 @@ def unifier_check_merge_ready(task_id: int) -> str:
 def unifier_submit_manifest(
     task_id: int,
     summary: str,
+    intent: str = "",
+    cot_summary: str = "",
+    feishu_message_id: str = "",
     submit_device: str = "",
     submit_agent: str = "",
 ) -> str:
-    """执行者提交 ChangeManifest（改动摘要）。"""
+    """执行者提交 ChangeManifest（改动摘要 + 意图记忆）。"""
     d = submit_device or device_id()
     a = submit_agent or agent_id()
     if not d:
         raise ValueError("请设置 UNIFIER_DEVICE_ID 或传入 submit_device")
+    body: dict = {
+        "agent_id": a,
+        "device_id": d,
+        "payload": {"summary": summary, "files": []},
+    }
+    if intent.strip():
+        body["intent"] = intent.strip()
+    if cot_summary.strip():
+        body["cot_summary"] = cot_summary.strip()
+    if feishu_message_id.strip():
+        body["feishu_message_id"] = feishu_message_id.strip()
     return pretty(
         request(
             "POST",
             f"/api/v1/tasks/{task_id}/manifest",
-            json_body={
-                "agent_id": a,
-                "device_id": d,
-                "payload": {"summary": summary, "files": []},
-            },
+            json_body=body,
         )
     )
+
+
+@mcp.tool()
+def unifier_search_manifest_intent(query: str = "", channel: str = "", limit: int = 20) -> str:
+    """检索 ChangeManifest 意图记忆（审计 / 复盘）。"""
+    params: dict = {"limit": limit}
+    if query.strip():
+        params["q"] = query.strip()
+    if channel.strip():
+        params["channel"] = channel.strip()
+    return pretty(request("GET", "/api/v1/audit/manifests", params=params))
 
 
 @mcp.tool()
@@ -215,6 +244,123 @@ def unifier_whoami() -> str:
             "reviewer_id": reviewer_id(),
         }
     )
+
+
+# ----- 圆桌对话 -----
+
+
+@mcp.tool()
+def unifier_dialogue_open(
+    topic: str,
+    title: str = "",
+    project_key: str = "maotai",
+    participants: str = "cursor,trae",
+) -> str:
+    """开圆桌：用户抛出话题。participants 逗号分隔，默认 cursor,trae。"""
+    parts = [p.strip() for p in participants.split(",") if p.strip()]
+    return pretty(
+        request(
+            "POST",
+            "/api/v1/dialogue/rooms",
+            json_body={
+                "title": title or topic[:80],
+                "topic": topic,
+                "project_key": project_key,
+                "participants": parts or ["cursor", "trae"],
+            },
+        )
+    )
+
+
+@mcp.tool()
+def unifier_dialogue_list_open(project_key: str = "maotai") -> str:
+    """仅列出 status=open 的圆桌。若为空，请用 unifier_dialogue_list(open_only=false) 看历史房。"""
+    return pretty(
+        request(
+            "GET",
+            "/api/v1/dialogue/rooms",
+            params={"project_key": project_key, "open_only": "true"},
+        )
+    )
+
+
+@mcp.tool()
+def unifier_dialogue_list(project_key: str = "maotai", open_only: bool = False) -> str:
+    """列出圆桌。open_only=false（默认）含已结束房间，便于调取历史对话框。"""
+    return pretty(
+        request(
+            "GET",
+            "/api/v1/dialogue/rooms",
+            params={
+                "project_key": project_key,
+                "open_only": "true" if open_only else "false",
+            },
+        )
+    )
+
+
+@mcp.tool()
+def unifier_dialogue_poll(room_id: int, since_id: int = 0, as_participant: str = "") -> str:
+    """拉圆桌状态：my_turn / waiting_for / 对方新消息 / transcript_tail。
+    as_participant 空则用 UNIFIER_AGENT_ID。未轮到你时勿输出长文。"""
+    who = (as_participant or agent_id()).strip().lower()
+    return pretty(
+        request(
+            "GET",
+            f"/api/v1/dialogue/rooms/{room_id}/poll",
+            params={"participant": who, "since_id": since_id},
+        )
+    )
+
+
+@mcp.tool()
+def unifier_dialogue_reply(
+    room_id: int,
+    body: str,
+    as_participant: str = "",
+) -> str:
+    """本轮发言（每人每轮最多一条）。as_participant 空则用 UNIFIER_AGENT_ID。"""
+    who = (as_participant or agent_id()).strip().lower()
+    return pretty(
+        request(
+            "POST",
+            f"/api/v1/dialogue/rooms/{room_id}/reply",
+            json_body={"participant": who, "body": body},
+        )
+    )
+
+
+@mcp.tool()
+def unifier_dialogue_user_message(room_id: int, body: str) -> str:
+    """用户追问 / 开新一轮话题（推进 round）。"""
+    return pretty(
+        request(
+            "POST",
+            f"/api/v1/dialogue/rooms/{room_id}/user-message",
+            json_body={"body": body},
+        )
+    )
+
+
+@mcp.tool()
+def unifier_dialogue_end(room_id: int) -> str:
+    """结束圆桌并落盘 transcript。"""
+    return pretty(request("POST", f"/api/v1/dialogue/rooms/{room_id}/end"))
+
+
+@mcp.tool()
+def unifier_dialogue_reopen(room_id: int, note: str = "") -> str:
+    """重新打开已结束的圆桌，进入新一轮；可带追问 note。"""
+    body = {"body": note} if note.strip() else {"body": f"继续房间 #{room_id}"}
+    return pretty(
+        request("POST", f"/api/v1/dialogue/rooms/{room_id}/reopen", json_body=body)
+    )
+
+
+@mcp.tool()
+def unifier_dialogue_transcript(room_id: int) -> str:
+    """拉取圆桌全文（含已结束房间）。"""
+    return pretty(request("GET", f"/api/v1/dialogue/rooms/{room_id}/transcript"))
 
 
 if __name__ == "__main__":

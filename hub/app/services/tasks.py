@@ -85,4 +85,7 @@ def apply_review_and_update_status(
 
 
 def manifest_payload(m: Manifest) -> dict[str, Any]:
-    return json.loads(m.payload_json)
+    """向后兼容：请优先使用 app.services.manifests.manifest_payload。"""
+    from app.services.manifests import manifest_payload as _mp
+
+    return _mp(m)

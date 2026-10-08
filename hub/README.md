@@ -106,9 +106,19 @@ export AGENTS=cursor,trae
 ```bash
 export HUB_URL=http://127.0.0.1:8787
 export TASK_ID=1 DEVICE_ID=mac-a AGENT_ID=cursor
-./scripts/submit-manifest.sh "调整 nginx upstream 超时"
+INTENT="用户报登录 5s 超时" COT="将 upstream 超时 5s→10s" \
+  ./scripts/submit-manifest.sh "调整 nginx upstream 超时"
 curl -X POST $HUB_URL/api/v1/tasks/$TASK_ID/submit-review
 ```
+
+审计检索（意图记忆）：
+
+```bash
+curl "$HUB_URL/api/v1/audit/manifests?q=超时"
+curl "$HUB_URL/api/v1/audit/tasks/1/manifest-diff"   # 双 Agent diff
+```
+
+**Web 控制台**：启动 Hub 后打开 [http://127.0.0.1:8787/audit](http://127.0.0.1:8787/audit) — GitHub PR 风格时间线 + CoT 折叠 + 双 Agent Diff。
 
 审查者（每台 trae/cursor 审查端）：
 
@@ -323,7 +333,9 @@ curl $HUB/api/v1/tasks/1/merge-ready
 | POST | `/api/v1/projects` | 绑定 GitHub 仓库 |
 | POST | `/api/v1/tasks` | 创建任务 |
 | POST | `/api/v1/tasks/{id}/assign` | 派发到设备+agent |
-| POST | `/api/v1/tasks/{id}/manifest` | 提交变更清单 |
+| POST | `/api/v1/tasks/{id}/manifest` | 提交变更清单（含 intent / cot_summary） |
+| GET | `/api/v1/audit/manifests` | 意图记忆检索 |
+| GET | `/api/v1/audit/tasks/{id}/manifest-diff` | 双 Agent manifest diff |
 | POST | `/api/v1/tasks/{id}/submit-review` | 进入审查 |
 | POST | `/api/v1/tasks/{id}/reviews` | 审查投票 |
 | GET | `/api/v1/tasks/{id}/merge-ready` | 是否可合并 |
@@ -404,15 +416,51 @@ manifest / 审查 / 全票通过也会自动推送到群。
 cd hub && UNIFIER_DEVICE_ID=mac-a UNIFIER_AGENT_ID=cursor ./scripts/run-mcp.sh
 ```
 
-**常用 MCP 工具**：`unifier_get_my_inbox` · `unifier_submit_manifest` · `unifier_submit_agent_reply`（回复发飞书）· `unifier_submit_review_vote` · `unifier_get_task_status` · `unifier_list_agent_slots`
+**常用 MCP 工具**：`unifier_get_my_inbox` · `unifier_submit_manifest`（含 intent/cot）· `unifier_search_manifest_intent` · `unifier_submit_agent_reply` · `unifier_submit_review_vote` · `unifier_get_task_status` · `unifier_list_agent_slots`
 
 ---
 
-## n8n 自动化套件（v0.3）
+## n8n 自动化套件（v0.3 · 可选 Sidecar）
 
-联合器内置 **n8n 自动化引擎**（NAS 式可选套件）：Hub 任务事件自动推送到 n8n，n8n 可反向调用 Hub API 派活或联动 GitHub / 邮件等。
+> **默认自动化**：见下方 **内置工作流引擎（路线 B）**，只启动 Hub 即可。
 
-### 启用
+可选启用 n8n Docker Sidecar（`N8N_ENABLED=true`），与内置引擎并行。
+
+---
+
+## 内置工作流引擎（路线 B · 默认）
+
+**单进程、可视化编排、无需 n8n。**
+
+### 编辑器
+
+```text
+http://127.0.0.1:8787/workflows/editor
+```
+
+### 能力
+
+- 13 种节点：Hub 事件 / Webhook / 定时 / 飞书 / 邮件 / HTTP / 派活 / 条件 / 延迟 …
+- 任务生命周期自动触发已激活工作流
+- 预置模板：`hub/workflows/presets/`（Hub 首次启动自动导入）
+
+### API
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/workflows/editor` | 可视化编辑器 |
+| GET | `/api/v1/workflows/nodes` | 节点目录 |
+| GET/POST | `/api/v1/workflows` | CRUD |
+| POST | `/api/v1/workflows/import-presets` | 导入预置 |
+| GET | `/api/v1/automation/workflows/health` | 引擎状态 |
+
+飞书：`工作流` · `自动化` · `套件`
+
+详见 [`workflows/README.md`](workflows/README.md)。
+
+---
+
+## n8n Sidecar（可选 · 路线 A 遗留）
 
 ```bash
 # hub/.env

@@ -119,6 +119,19 @@ class ManifestSubmit(BaseModel):
     agent_id: str
     device_id: str
     payload: dict[str, Any]
+    intent: str | None = Field(
+        default=None, description="变更意图：为什么改、业务背景"
+    )
+    cot_summary: str | None = Field(
+        default=None, description="思维链摘要：推理过程、权衡点"
+    )
+    channel: str | None = Field(default=None, description="来源通道，默认 feishu")
+    channel_message_id: str | None = Field(
+        default=None, description="来源通道消息 ID（通用）"
+    )
+    feishu_message_id: str | None = Field(
+        default=None, description="飞书 message_id（channel=feishu 时写入）"
+    )
 
 
 class ReviewSubmit(BaseModel):
@@ -145,9 +158,72 @@ class ManifestOut(BaseModel):
     agent_id: str
     device_id: str
     payload: dict[str, Any]
+    intent: str | None = None
+    cot_summary: str | None = None
+    channel: str = "feishu"
+    channel_message_id: str | None = None
+    feishu_message_id: str | None = None
     submitted_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ManifestAuditItem(BaseModel):
+    id: int
+    task_id: int
+    task_title: str | None = None
+    task_status: str | None = None
+    project: str | None = None
+    agent_id: str
+    device_id: str
+    intent: str | None = None
+    cot_summary: str | None = None
+    channel: str = "feishu"
+    channel_message_id: str | None = None
+    feishu_message_id: str | None = None
+    task_feishu_message_id: str | None = None
+    payload: dict[str, Any]
+    submitted_at: datetime
+
+
+class ManifestAuditSearchOut(BaseModel):
+    q: str | None = None
+    channel: str | None = None
+    count: int
+    items: list[ManifestAuditItem]
+
+
+class ManifestFieldDiff(BaseModel):
+    field: str
+    left_text: str
+    right_text: str
+    unified_diff: list[str]
+
+
+class ManifestPairDiff(BaseModel):
+    left_agent: str
+    right_agent: str
+    left_device: str
+    right_device: str
+    left_manifest_id: int
+    right_manifest_id: int
+    left_submitted_at: datetime
+    right_submitted_at: datetime
+    field_diffs: list[ManifestFieldDiff]
+    files_only_left: list[str]
+    files_only_right: list[str]
+    files_common: list[str]
+
+
+class TaskManifestDiffOut(BaseModel):
+    task_id: int
+    found: bool = True
+    task_title: str | None = None
+    task_status: str | None = None
+    project: str | None = None
+    agents: list[str] = Field(default_factory=list)
+    manifest_count: int = 0
+    pairs: list[ManifestPairDiff] = Field(default_factory=list)
 
 
 class TaskOut(BaseModel):
@@ -244,3 +320,32 @@ class AgentReplyOut(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ExecutionAbortBody(BaseModel):
+    device_id: str
+    agent_id: str
+    reason: str = "execution_timeout"
+    rollback_status: str | None = None
+    timeout_seconds: int | None = None
+    notify_feishu: bool = True
+
+
+# ----- 圆桌对话 -----
+
+
+class DialogueOpenBody(BaseModel):
+    title: str = ""
+    topic: str = Field(..., min_length=1)
+    project_key: str = "maotai"
+    participants: list[str] = Field(default_factory=lambda: ["cursor", "trae"])
+
+
+class DialogueUserMessageBody(BaseModel):
+    body: str = Field(..., min_length=1)
+    auto_reply: bool | None = None  # None=跟 settings.dialogue_auto_reply
+
+
+class DialogueReplyBody(BaseModel):
+    participant: str = Field(..., min_length=1)
+    body: str = Field(..., min_length=1)

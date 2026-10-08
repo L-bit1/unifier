@@ -1,4 +1,4 @@
-"""联合器事件总线：任务生命周期 → n8n 等自动化 Connector。"""
+"""联合器事件总线：任务生命周期 → 内置工作流 / 可选 n8n。"""
 from __future__ import annotations
 
 import asyncio
@@ -7,6 +7,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.models import Task
 from app.services.n8n_bridge import emit_to_n8n, emit_to_n8n_sync, n8n_configured
 from app.services.orchestrate import command_status
@@ -43,14 +44,28 @@ def emit_event(
     extra: dict[str, Any] | None = None,
 ) -> None:
     """异步友好地发出 Hub 事件（不阻断主流程）。"""
-    if not n8n_configured():
-        return
-
     data: dict[str, Any] = {}
     if task is not None:
         data.update(_task_payload(task, db))
     if extra:
         data.update(extra)
+
+    # P0：任务通知流 → 飞书
+    if task is not None:
+        try:
+            from app.services.feishu_notify import notify_lifecycle
+
+            notify_lifecycle(event_type, task, db=db, extra=extra)
+        except Exception as e:
+            logger.debug("lifecycle notify skip %s: %s", event_type, e)
+
+    if settings.workflows_enabled:
+        from app.services.workflow_engine import trigger_hub_event_async
+
+        trigger_hub_event_async(event_type, data)
+
+    if not n8n_configured():
+        return
 
     try:
         loop = asyncio.get_running_loop()
@@ -58,4 +73,4 @@ def emit_event(
     except RuntimeError:
         result = emit_to_n8n_sync(event_type, data)
         if not result.get("ok") and not result.get("skipped"):
-            logger.debug("event_bus sync emit %s: %s", event_type, result)
+            logger.debug("event_bus n8n emit %s: %s", event_type, result)

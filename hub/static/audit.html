@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>联合器 · 审计黑匣子</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #238636;
+      --link: #58a6ff;
+      --add: #3fb950;
+      --del: #f85149;
+      --add-bg: rgba(46, 160, 67, 0.15);
+      --del-bg: rgba(248, 81, 73, 0.15);
+      --cursor: #2d6a4f;
+      --trae: #8957e5;
+      --dsh: #d29922;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif; background: var(--bg); color: var(--text); }
+    body { display: grid; grid-template-rows: auto 1fr; min-height: 100%; }
+    header {
+      padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--panel);
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+    }
+    header h1 { margin: 0; font-size: 1rem; font-weight: 600; }
+    header .sub { color: var(--muted); font-size: 0.85rem; font-weight: 400; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    input, select, button {
+      background: var(--bg); color: var(--text); border: 1px solid var(--border);
+      border-radius: 6px; padding: 6px 10px; font-size: 0.875rem;
+    }
+    button { cursor: pointer; background: var(--accent); border-color: #238636; color: #fff; }
+    button.secondary { background: var(--panel); border-color: var(--border); color: var(--text); }
+    button:hover { filter: brightness(1.06); }
+    .layout {
+      display: grid; grid-template-columns: minmax(280px, 340px) 1fr; min-height: 0; height: 100%;
+    }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+    .sidebar {
+      border-right: 1px solid var(--border); overflow-y: auto; background: var(--panel);
+    }
+    .sidebar-head { padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 0.8rem; color: var(--muted); }
+    .timeline { list-style: none; margin: 0; padding: 0; }
+    .timeline li {
+      border-bottom: 1px solid var(--border); padding: 12px 14px; cursor: pointer;
+    }
+    .timeline li:hover { background: #21262d; }
+    .timeline li.active { background: #21262d; border-left: 3px solid var(--link); }
+    .timeline .task-id { color: var(--link); font-weight: 600; font-size: 0.85rem; }
+    .timeline .title { font-size: 0.9rem; margin: 4px 0; }
+    .timeline .meta { font-size: 0.75rem; color: var(--muted); }
+    .main { overflow-y: auto; padding: 20px 24px 40px; }
+    .empty { color: var(--muted); padding: 40px 20px; text-align: center; }
+    .pr-header {
+      border: 1px solid var(--border); border-radius: 6px; background: var(--panel);
+      padding: 16px; margin-bottom: 16px;
+    }
+    .pr-header h2 { margin: 0 0 8px; font-size: 1.1rem; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem;
+      border: 1px solid var(--border); margin-right: 6px;
+    }
+    .badge.open { border-color: var(--accent); color: #3fb950; }
+    .manifest-card {
+      border: 1px solid var(--border); border-radius: 6px; margin-bottom: 12px; overflow: hidden;
+    }
+    .manifest-card .head {
+      padding: 10px 14px; background: #21262d; border-bottom: 1px solid var(--border);
+      display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 0.85rem;
+    }
+    .agent-pill {
+      padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+    }
+    .agent-pill.cursor { background: rgba(45,106,79,.35); color: #94d2bd; }
+    .agent-pill.trae { background: rgba(137,87,229,.25); color: #d2a8ff; }
+    .agent-pill.dsh { background: rgba(210,153,34,.25); color: #e3b341; }
+    .agent-pill.other { background: #30363d; }
+    .manifest-card .body { padding: 14px; font-size: 0.875rem; }
+    .summary-box {
+      padding: 10px 12px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; margin-bottom: 10px;
+    }
+    details.cot {
+      border: 1px solid var(--border); border-radius: 6px; margin-top: 8px; background: var(--bg);
+    }
+    details.cot summary {
+      cursor: pointer; padding: 10px 12px; font-weight: 600; color: var(--muted); list-style: none;
+    }
+    details.cot summary::-webkit-details-marker { display: none; }
+    details.cot summary::before { content: "▸ "; }
+    details.cot[open] summary::before { content: "▾ "; }
+    details.cot .cot-body { padding: 0 12px 12px; white-space: pre-wrap; line-height: 1.5; color: #c9d1d9; }
+    .diff-section { margin-top: 24px; }
+    .diff-section h3 { font-size: 1rem; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+    .diff-pair {
+      border: 1px solid var(--border); border-radius: 6px; margin-bottom: 16px; overflow: hidden;
+    }
+    .diff-pair .pair-head {
+      padding: 10px 14px; background: #21262d; font-size: 0.85rem; border-bottom: 1px solid var(--border);
+    }
+    .file-header {
+      padding: 6px 12px; background: #161b22; border-bottom: 1px solid var(--border);
+      font-family: ui-monospace, monospace; font-size: 0.8rem; color: var(--muted);
+    }
+    .diff-table { width: 100%; border-collapse: collapse; font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.78rem; }
+    .diff-table td { padding: 0 8px; vertical-align: top; white-space: pre-wrap; word-break: break-word; }
+    .diff-table tr.add td { background: var(--add-bg); color: var(--add); }
+    .diff-table tr.del td { background: var(--del-bg); color: var(--del); }
+    .diff-table tr.ctx td { color: var(--muted); }
+    .diff-table .ln { width: 36px; text-align: right; color: var(--muted); user-select: none; border-right: 1px solid var(--border); padding-right: 8px; }
+    .files-grid { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 14px; font-size: 0.8rem; }
+    .file-tag { padding: 2px 6px; border-radius: 4px; background: #21262d; border: 1px solid var(--border); }
+    .file-tag.add { border-color: var(--add); color: var(--add); }
+    .file-tag.del { border-color: var(--del); color: var(--del); }
+    .status-msg { font-size: 0.85rem; color: var(--muted); padding: 8px 0; }
+    a { color: var(--link); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>联合器 · 审计黑匣子 <span class="sub">GitHub PR 风格 · 意图时间线 · 双 Agent Diff</span></h1>
+    </div>
+    <div class="toolbar">
+      <input id="q" type="search" placeholder="搜索意图 / CoT / 摘要…" style="min-width:200px" />
+      <input id="taskId" type="number" placeholder="任务 ID" style="width:90px" />
+      <select id="channel">
+        <option value="">全部通道</option>
+        <option value="feishu">feishu</option>
+      </select>
+      <button id="btnSearch">检索</button>
+      <button class="secondary" id="btnRefresh">刷新</button>
+      <a href="/docs" target="_blank" style="font-size:0.85rem">API</a>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-head" id="sidebarMeta">加载中…</div>
+      <ul class="timeline" id="timeline"></ul>
+    </aside>
+    <main class="main" id="main">
+      <div class="empty">← 选择左侧任务，查看 Agent 思维链与双端 Diff</div>
+    </main>
+  </div>
+
+  <script>
+    const API = "";
+    let allItems = [];
+    let selectedTaskId = null;
+
+    function agentClass(id) {
+      if (id === "cursor") return "cursor";
+      if (id === "trae") return "trae";
+      if (id === "dsh") return "dsh";
+      return "other";
+    }
+
+    function fmtTime(iso) {
+      if (!iso) return "—";
+      const d = new Date(iso);
+      return d.toLocaleString("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    }
+
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function groupByTask(items) {
+      const map = new Map();
+      for (const it of items) {
+        if (!map.has(it.task_id)) {
+          map.set(it.task_id, {
+            task_id: it.task_id,
+            task_title: it.task_title,
+            task_status: it.task_status,
+            project: it.project,
+            manifests: [],
+          });
+        }
+        map.get(it.task_id).manifests.push(it);
+      }
+      return [...map.values()].sort((a, b) => b.task_id - a.task_id);
+    }
+
+    function renderTimeline(groups) {
+      const ul = document.getElementById("timeline");
+      document.getElementById("sidebarMeta").textContent = `${groups.length} 个任务 · ${allItems.length} 条 manifest`;
+      ul.innerHTML = groups.map(g => {
+        const agents = [...new Set(g.manifests.map(m => m.agent_id))].join(" · ");
+        const active = selectedTaskId === g.task_id ? "active" : "";
+        return `<li class="${active}" data-task="${g.task_id}">
+          <div class="task-id">#${g.task_id} · ${escapeHtml(g.project || "—")}</div>
+          <div class="title">${escapeHtml(g.task_title || "（无标题）")}</div>
+          <div class="meta">${escapeHtml(g.task_status || "")} · ${g.manifests.length} manifest · ${escapeHtml(agents)}</div>
+        </li>`;
+      }).join("") || "<li style='padding:14px;color:var(--muted)'>无记录</li>";
+
+      ul.querySelectorAll("li[data-task]").forEach(li => {
+        li.addEventListener("click", () => selectTask(Number(li.dataset.task)));
+      });
+    }
+
+    function renderManifestCard(m) {
+      const summary = m.payload?.summary || "（无摘要）";
+      const intent = m.intent || m.payload?.intent || "";
+      const cot = m.cot_summary || m.payload?.cot_summary || "";
+      const files = Array.isArray(m.payload?.files) ? m.payload.files : [];
+      return `<article class="manifest-card">
+        <div class="head">
+          <span class="agent-pill ${agentClass(m.agent_id)}">${escapeHtml(m.agent_id)}</span>
+          <span>${escapeHtml(m.device_id)}</span>
+          <span style="color:var(--muted)">${fmtTime(m.submitted_at)}</span>
+          <span style="color:var(--muted)">manifest #${m.id}</span>
+        </div>
+        <div class="body">
+          <div class="summary-box"><strong>Summary</strong><br>${escapeHtml(summary)}</div>
+          ${intent ? `<div><strong>Intent</strong><br>${escapeHtml(intent)}</div>` : ""}
+          ${cot ? `<details class="cot" open><summary>Agent 思维链 (CoT)</summary><div class="cot-body">${escapeHtml(cot)}</div></details>` : ""}
+          ${files.length ? `<div style="margin-top:8px;font-size:0.8rem;color:var(--muted)">files: ${files.map(f => escapeHtml(f)).join(", ")}</div>` : ""}
+          ${m.feishu_message_id ? `<div style="margin-top:6px;font-size:0.75rem;color:var(--muted)">feishu: ${escapeHtml(m.feishu_message_id)}</div>` : ""}
+        </div>
+      </article>`;
+    }
+
+    function renderUnifiedDiff(diffLines) {
+      if (!diffLines || !diffLines.length) {
+        return `<div class="status-msg">两版本文本相同</div>`;
+      }
+      let rows = "";
+      let n = 0;
+      for (const line of diffLines) {
+        if (line.startsWith("+++") || line.startsWith("---") || line.startsWith("@@")) continue;
+        n++;
+        let cls = "ctx";
+        let prefix = " ";
+        if (line.startsWith("+")) { cls = "add"; prefix = "+"; }
+        else if (line.startsWith("-")) { cls = "del"; prefix = "-"; }
+        const text = line.startsWith("+") || line.startsWith("-") ? line.slice(1) : line;
+        rows += `<tr class="${cls}"><td class="ln">${n}</td><td>${escapeHtml(prefix + text)}</td></tr>`;
+      }
+      return `<table class="diff-table">${rows}</table>`;
+    }
+
+    function renderDiffPair(pair) {
+      const fields = (pair.field_diffs || []).map(fd => `
+        <div class="file-header">diff · ${escapeHtml(fd.field)}</div>
+        ${renderUnifiedDiff(fd.unified_diff)}
+      `).join("") || `<div class="status-msg">summary/intent/cot 字段一致</div>`;
+
+      const filesHtml = `
+        <div class="files-grid">
+          ${(pair.files_only_left || []).map(f => `<span class="file-tag del">− ${escapeHtml(f)}</span>`).join("")}
+          ${(pair.files_only_right || []).map(f => `<span class="file-tag add">+ ${escapeHtml(f)}</span>`).join("")}
+          ${!(pair.files_only_left?.length || pair.files_only_right?.length) ? "<span class='status-msg'>files 列表一致</span>" : ""}
+        </div>`;
+
+      return `<div class="diff-pair">
+        <div class="pair-head">
+          <span class="agent-pill ${agentClass(pair.left_agent)}">${escapeHtml(pair.left_agent)}</span>
+          ${escapeHtml(pair.left_device)}
+          <span style="color:var(--muted)">↔</span>
+          <span class="agent-pill ${agentClass(pair.right_agent)}">${escapeHtml(pair.right_agent)}</span>
+          ${escapeHtml(pair.right_device)}
+        </div>
+        ${fields}
+        <div class="file-header">changed files</div>
+        ${filesHtml}
+      </div>`;
+    }
+
+    async function loadDiff(taskId) {
+      const res = await fetch(`${API}/api/v1/audit/tasks/${taskId}/manifest-diff`);
+      if (!res.ok) return null;
+      return res.json();
+    }
+
+    async function selectTask(taskId) {
+      selectedTaskId = taskId;
+      renderTimeline(groupByTask(allItems));
+      const group = groupByTask(allItems).find(g => g.task_id === taskId);
+      const main = document.getElementById("main");
+      if (!group) {
+        main.innerHTML = `<div class="empty">任务 #${taskId} 无 manifest</div>`;
+        return;
+      }
+
+      main.innerHTML = `<div class="pr-header">
+        <h2>#${taskId} ${escapeHtml(group.task_title || "")}</h2>
+        <div>
+          <span class="badge open">${escapeHtml(group.task_status || "—")}</span>
+          <span class="badge">${escapeHtml(group.project || "—")}</span>
+          <span class="badge">${group.manifests.length} commits</span>
+        </div>
+      </div>
+      <div id="manifests">${group.manifests.map(renderManifestCard).join("")}</div>
+      <div class="diff-section" id="diffArea"><p class="status-msg">加载 Diff…</p></div>`;
+
+      const diff = await loadDiff(taskId);
+      const area = document.getElementById("diffArea");
+      if (!diff || !diff.pairs?.length) {
+        area.innerHTML = `<h3>双 Agent Diff</h3><p class="status-msg">需要 ≥2 个不同 Agent 的 manifest 才会生成比对报告（当前 agents: ${escapeHtml((diff?.agents || []).join(", ") || "—")}）</p>`;
+        return;
+      }
+      area.innerHTML = `<h3>双 Agent Diff <span style="font-weight:400;color:var(--muted)">${diff.pairs.length} 组比对</span></h3>${diff.pairs.map(renderDiffPair).join("")}`;
+    }
+
+    async function loadManifests() {
+      const q = document.getElementById("q").value.trim();
+      const channel = document.getElementById("channel").value;
+      const taskId = document.getElementById("taskId").value.trim();
+      const params = new URLSearchParams({ limit: "100" });
+      if (q) params.set("q", q);
+      if (channel) params.set("channel", channel);
+      if (taskId) params.set("task_id", taskId);
+
+      document.getElementById("sidebarMeta").textContent = "加载中…";
+      const res = await fetch(`${API}/api/v1/audit/manifests?${params}`);
+      if (!res.ok) {
+        document.getElementById("sidebarMeta").textContent = "加载失败";
+        return;
+      }
+      const data = await res.json();
+      allItems = data.items || [];
+      const groups = groupByTask(allItems);
+      renderTimeline(groups);
+      if (selectedTaskId && groups.some(g => g.task_id === selectedTaskId)) {
+        selectTask(selectedTaskId);
+      } else if (groups.length && !taskId) {
+        selectTask(groups[0].task_id);
+      } else if (taskId && groups.length) {
+        selectTask(Number(taskId));
+      } else {
+        document.getElementById("main").innerHTML = `<div class="empty">无匹配记录</div>`;
+      }
+    }
+
+    document.getElementById("btnSearch").addEventListener("click", loadManifests);
+    document.getElementById("btnRefresh").addEventListener("click", loadManifests);
+    document.getElementById("q").addEventListener("keydown", e => { if (e.key === "Enter") loadManifests(); });
+    loadManifests();
+  </script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "name": "Webhook 派活模板",
+  "description": "外部系统 POST Webhook 后派活（body 需含 owner/repo/title）",
+  "active": false,
+  "graph": {
+    "version": 1,
+    "nodes": [
+      {
+        "id": "t1",
+        "type": "trigger.webhook",
+        "label": "Webhook",
+        "params": {},
+        "position": { "x": 80, "y": 120 }
+      },
+      {
+        "id": "d1",
+        "type": "action.hub_dispatch",
+        "label": "派活",
+        "params": {
+          "github_owner": "{{event.data.owner}}",
+          "github_repo": "{{event.data.repo}}",
+          "title": "{{event.data.title}}",
+          "branch": "{{event.data.branch}}"
+        },
+        "position": { "x": 360, "y": 120 }
+      }
+    ],
+    "edges": [{ "from": "t1", "to": "d1", "output": "default" }]
+  }
+}

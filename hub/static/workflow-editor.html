@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>联合器 · 工作流编辑器</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/drawflow/dist/drawflow.min.css" />
+  <style>
+    :root { --bg: #0f172a; --panel: #1e293b; --accent: #2563eb; --text: #e2e8f0; --muted: #94a3b8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+    header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid #334155; flex-wrap: wrap; }
+    header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+    header input, header select, header button { background: #0f172a; color: var(--text); border: 1px solid #475569; border-radius: 6px; padding: 6px 10px; font-size: 13px; }
+    header button.primary { background: var(--accent); border-color: var(--accent); cursor: pointer; }
+    header button { cursor: pointer; }
+    main { flex: 1; display: grid; grid-template-columns: 220px 1fr 280px; min-height: 0; }
+    aside, .inspector { background: var(--panel); border-right: 1px solid #334155; overflow: auto; padding: 12px; }
+    .inspector { border-right: none; border-left: 1px solid #334155; }
+    .palette h3, .inspector h3 { font-size: 12px; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+    .node-chip { display: block; width: 100%; text-align: left; margin-bottom: 6px; padding: 8px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: var(--text); cursor: grab; font-size: 12px; }
+    .node-chip small { display: block; color: var(--muted); margin-top: 4px; }
+    #drawflow { width: 100%; height: 100%; background: #0b1220; background-image: radial-gradient(#334155 1px, transparent 1px); background-size: 20px 20px; }
+    .drawflow .drawflow-node { background: #1e293b; border: 1px solid #475569; color: var(--text); min-width: 180px; }
+    .drawflow .drawflow-node.selected { border-color: var(--accent); }
+    .drawflow .title-box { background: var(--accent); }
+    label { display: block; font-size: 12px; color: var(--muted); margin: 8px 0 4px; }
+    textarea, .inspector input, .inspector select { width: 100%; background: #0f172a; color: var(--text); border: 1px solid #475569; border-radius: 6px; padding: 6px 8px; font-size: 12px; }
+    textarea { min-height: 80px; resize: vertical; }
+    .hint { font-size: 11px; color: var(--muted); line-height: 1.5; margin-top: 12px; }
+    .status { margin-left: auto; font-size: 12px; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>联合器工作流</h1>
+    <select id="workflowSelect"><option value="">加载工作流…</option></select>
+    <input id="workflowName" placeholder="工作流名称" />
+    <button class="primary" id="btnSave">保存</button>
+    <button id="btnActivate">激活</button>
+    <button id="btnRun">试运行</button>
+    <button id="btnImportPresets">导入预置</button>
+    <span class="status" id="status"></span>
+  </header>
+  <main>
+    <aside class="palette">
+      <h3>节点</h3>
+      <div id="palette"></div>
+      <p class="hint">拖拽节点到画布，从输出点拖到输入点连线。选中节点后在右侧编辑参数。模板可用 <code>{{event.data.task_id}}</code></p>
+    </aside>
+    <div id="drawflow"></div>
+    <div class="inspector">
+      <h3>节点参数</h3>
+      <div id="inspectorEmpty" class="hint">选中一个节点以编辑</div>
+      <div id="inspectorForm" hidden>
+        <label>类型</label><input id="nodeType" readonly />
+        <label>标签</label><input id="nodeLabel" />
+        <div id="paramFields"></div>
+        <button class="primary" id="btnApplyNode" style="margin-top:12px;width:100%">应用到节点</button>
+      </div>
+    </div>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/drawflow/dist/drawflow.min.js"></script>
+  <script>
+    const API = window.location.origin;
+    let catalog = [];
+    let currentWorkflowId = null;
+    let selectedNodeId = null;
+    const editor = new Drawflow(document.getElementById('drawflow'));
+    editor.reroute = true;
+    editor.start();
+
+    function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
+    async function loadCatalog() {
+      const res = await fetch(`${API}/api/v1/workflows/nodes`);
+      const data = await res.json();
+      catalog = data.nodes || [];
+      const palette = document.getElementById('palette');
+      palette.innerHTML = '';
+      catalog.forEach(n => {
+        const btn = document.createElement('button');
+        btn.className = 'node-chip';
+        btn.draggable = true;
+        btn.dataset.type = n.type;
+        btn.innerHTML = `<strong>${n.name}</strong><small>${n.type}</small>`;
+        btn.addEventListener('dragstart', e => {
+          e.dataTransfer.setData('node/type', n.type);
+          e.dataTransfer.setData('node/name', n.name);
+        });
+        palette.appendChild(btn);
+      });
+    }
+
+    async function loadWorkflowList() {
+      const res = await fetch(`${API}/api/v1/workflows`);
+      const list = await res.json();
+      const sel = document.getElementById('workflowSelect');
+      sel.innerHTML = '<option value="">新建工作流…</option>';
+      list.forEach(w => {
+        const opt = document.createElement('option');
+        opt.value = w.id;
+        opt.textContent = `#${w.id} ${w.name}${w.active ? ' ✓' : ''}`;
+        sel.appendChild(opt);
+      });
+    }
+
+    function defaultParams(type) {
+      const node = catalog.find(n => n.type === type);
+      if (!node || !node.params_schema) return {};
+      const params = {};
+      Object.entries(node.params_schema).forEach(([key, schema]) => {
+        if (schema.default !== undefined) params[key] = schema.default;
+        else if (schema.type === 'multiselect') params[key] = [];
+        else params[key] = '';
+      });
+      return params;
+    }
+
+    document.getElementById('drawflow').addEventListener('drop', e => {
+      e.preventDefault();
+      const type = e.dataTransfer.getData('node/type');
+      const name = e.dataTransfer.getData('node/name');
+      if (!type) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / editor.zoom;
+      const y = (e.clientY - rect.top) / editor.zoom;
+      const id = 'n' + Date.now();
+      editor.addNode(id, 1, 1, x, y, type, { type, label: name, params: defaultParams(type) }, name);
+    });
+    document.getElementById('drawflow').addEventListener('dragover', e => e.preventDefault());
+
+    editor.on('nodeSelected', id => { selectedNodeId = id; renderInspector(id); });
+    editor.on('nodeUnselected', () => { selectedNodeId = null; document.getElementById('inspectorForm').hidden = true; document.getElementById('inspectorEmpty').hidden = false; });
+
+    function renderInspector(id) {
+      const data = editor.getNodeFromId(id).data;
+      document.getElementById('inspectorEmpty').hidden = true;
+      document.getElementById('inspectorForm').hidden = false;
+      document.getElementById('nodeType').value = data.type;
+      document.getElementById('nodeLabel').value = data.label || '';
+      const fields = document.getElementById('paramFields');
+      fields.innerHTML = '';
+      const meta = catalog.find(n => n.type === data.type);
+      const schema = (meta && meta.params_schema) || {};
+      Object.entries(schema).forEach(([key, sch]) => {
+        const label = document.createElement('label');
+        label.textContent = key + (sch.placeholder ? ` (${sch.placeholder})` : '');
+        fields.appendChild(label);
+        let input;
+        if (sch.type === 'multiselect') {
+          input = document.createElement('textarea');
+          input.value = (data.params[key] || []).join(', ');
+          input.dataset.key = key;
+          input.dataset.kind = 'multiselect';
+        } else if (sch.type === 'text') {
+          input = document.createElement('textarea');
+          input.value = data.params[key] || '';
+          input.dataset.key = key;
+        } else {
+          input = document.createElement('input');
+          input.value = data.params[key] || '';
+          input.dataset.key = key;
+        }
+        fields.appendChild(input);
+      });
+    }
+
+    document.getElementById('btnApplyNode').onclick = () => {
+      if (!selectedNodeId) return;
+      const node = editor.getNodeFromId(selectedNodeId);
+      node.data.label = document.getElementById('nodeLabel').value;
+      document.querySelectorAll('#paramFields [data-key]').forEach(el => {
+        const key = el.dataset.key;
+        if (el.dataset.kind === 'multiselect') {
+          node.data.params[key] = el.value.split(',').map(s => s.trim()).filter(Boolean);
+        } else {
+          node.data.params[key] = el.value;
+        }
+      });
+      editor.updateNodeDataFromId(selectedNodeId, node.data);
+      editor.drawflow.drawflow.Home.data[selectedNodeId].name = node.data.label;
+      setStatus('节点已更新');
+    };
+
+    function exportGraph() {
+      const raw = editor.export();
+      const home = raw.drawflow.Home.data;
+      const nodes = [];
+      const edges = [];
+      Object.entries(home).forEach(([id, n]) => {
+        nodes.push({
+          id: String(id),
+          type: n.data.type,
+          label: n.data.label || n.name,
+          params: n.data.params || {},
+          position: { x: n.pos_x, y: n.pos_y }
+        });
+        (n.outputs || {}).forEach((out, oidx) => {
+          (out.connections || []).forEach(conn => {
+            edges.push({
+              from: String(id),
+              to: String(conn.node),
+              output: oidx === 0 ? 'default' : (n.data.type === 'logic.if' ? (oidx === 0 ? 'true' : 'false') : 'default')
+            });
+          });
+        });
+      });
+      return { version: 1, nodes, edges };
+    }
+
+    function importGraph(graph) {
+      editor.clear();
+      const idMap = {};
+      (graph.nodes || []).forEach(n => {
+        const inputs = n.type.startsWith('trigger.') ? 0 : 1;
+        const outputs = n.type === 'logic.if' || n.type === 'action.hub_connectivity' ? 2 : 1;
+        const nid = editor.addNode(n.id, inputs, outputs, n.position?.x || 100, n.position?.y || 100, n.type, {
+          type: n.type, label: n.label, params: n.params || {}
+        }, n.label || n.type);
+        idMap[n.id] = nid;
+      });
+      (graph.edges || []).forEach(e => {
+        const from = idMap[e.from];
+        const to = idMap[e.to];
+        if (!from || !to) return;
+        let outClass = 'output_1';
+        if (e.output === 'false') outClass = 'output_2';
+        editor.addConnection(from, to, outClass, 'input_1');
+      });
+    }
+
+    document.getElementById('workflowSelect').onchange = async e => {
+      const id = e.target.value;
+      currentWorkflowId = id || null;
+      if (!id) { editor.clear(); document.getElementById('workflowName').value = ''; return; }
+      const res = await fetch(`${API}/api/v1/workflows/${id}`);
+      const wf = await res.json();
+      document.getElementById('workflowName').value = wf.name;
+      importGraph(wf.graph);
+      setStatus(wf.webhook_url ? `Webhook: ${wf.webhook_url}` : `已加载 #${id}`);
+    };
+
+    document.getElementById('btnSave').onclick = async () => {
+      const name = document.getElementById('workflowName').value.trim() || '未命名工作流';
+      const body = { name, graph: exportGraph(), active: false };
+      let res;
+      if (currentWorkflowId) {
+        res = await fetch(`${API}/api/v1/workflows/${currentWorkflowId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      } else {
+        res = await fetch(`${API}/api/v1/workflows`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      }
+      const wf = await res.json();
+      currentWorkflowId = wf.id;
+      await loadWorkflowList();
+      document.getElementById('workflowSelect').value = wf.id;
+      setStatus(`已保存 #${wf.id}`);
+    };
+
+    document.getElementById('btnActivate').onclick = async () => {
+      if (!currentWorkflowId) return setStatus('请先保存');
+      await fetch(`${API}/api/v1/workflows/${currentWorkflowId}/activate`, { method: 'POST' });
+      await loadWorkflowList();
+      setStatus('已激活');
+    };
+
+    document.getElementById('btnRun').onclick = async () => {
+      if (!currentWorkflowId) return setStatus('请先保存');
+      const res = await fetch(`${API}/api/v1/workflows/${currentWorkflowId}/run`, { method: 'POST' });
+      const run = await res.json();
+      setStatus(`试运行: ${run.status}${run.error ? ' · ' + run.error : ''}`);
+    };
+
+    document.getElementById('btnImportPresets').onclick = async () => {
+      const res = await fetch(`${API}/api/v1/workflows/import-presets`, { method: 'POST' });
+      const data = await res.json();
+      await loadWorkflowList();
+      setStatus(`导入 ${data.imported} 个预置工作流`);
+    };
+
+    loadCatalog().then(loadWorkflowList);
+  </script>
+</body>
+</html>

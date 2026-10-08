@@ -1,0 +1,15 @@
+{
+  "name": "@unifier/dsh-plugin",
+  "version": "0.1.0",
+  "description": "DeepSeek Harness plugin: Unifier Hub tools (Feishu mobile orchestration)",
+  "private": true,
+  "type": "module",
+  "keywords": ["dsh-plugin", "deepseek-harness", "unifier", "feishu"],
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "*",
+    "@deepseek-ai/dsh-tools": "*"
+  },
+  "scripts": {
+    "print-patch": "node scripts/print-cordis-patch.mjs"
+  }
+}

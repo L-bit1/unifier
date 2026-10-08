@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>联合器 · 圆桌对话框</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a2332;
+      --border: #2a3544;
+      --text: #e7ecf3;
+      --muted: #8b9bb4;
+      --user: #3d5a80;
+      --cursor: #2d6a4f;
+      --trae: #7b2cbf;
+      --composer-h: auto;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      font-family: "SF Pro Text", "PingFang SC", "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    body {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 100%;
+    }
+    header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    select, button, input, textarea {
+      background: #0f1419;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+      font-family: inherit;
+    }
+    button {
+      cursor: pointer;
+      background: #2563eb;
+      border-color: #2563eb;
+    }
+    button:hover { filter: brightness(1.08); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+    button.secondary { background: transparent; border-color: var(--border); }
+    .meta {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .meta strong { color: #94d2bd; }
+    main {
+      overflow-y: auto;
+      padding: 16px 16px 24px;
+    }
+    .feed-inner {
+      max-width: 880px;
+      margin: 0 auto;
+    }
+    .empty {
+      text-align: center;
+      color: var(--muted);
+      padding: 60px 20px;
+    }
+    .bubble {
+      margin: 0 0 14px;
+      max-width: 92%;
+    }
+    .bubble.cursor { margin-left: auto; }
+    .bubble.trae { margin-right: auto; }
+    .bubble.system {
+      margin: 8px auto;
+      max-width: 100%;
+      text-align: center;
+    }
+    .bubble .who {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+      display: flex;
+      gap: 8px;
+      align-items: baseline;
+    }
+    .bubble.cursor .who { justify-content: flex-end; }
+    .bubble .body {
+      padding: 12px 14px;
+      border-radius: 14px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+      border: 1px solid var(--border);
+    }
+    .bubble.user .body { background: var(--user); }
+    .bubble.cursor .body { background: var(--cursor); }
+    .bubble.trae .body { background: var(--trae); }
+    .bubble.system .body {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 4px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      background: #243044;
+    }
+    .composer {
+      border-top: 1px solid var(--border);
+      background: var(--panel);
+      padding: 10px 16px 14px;
+    }
+    .composer-inner {
+      max-width: 880px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .composer-opts {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .composer-opts input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #2563eb;
+      cursor: pointer;
+    }
+    .composer-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-end;
+    }
+    #userInput {
+      flex: 1;
+      min-height: 72px;
+      max-height: 200px;
+      resize: vertical;
+      line-height: 1.45;
+      width: 100%;
+    }
+    #btnSend {
+      min-width: 88px;
+      height: 40px;
+      margin-bottom: 2px;
+    }
+    .hint {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .live {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #22c55e;
+      display: inline-block;
+      animation: pulse 1.5s infinite;
+      margin-right: 4px;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .toast {
+      position: fixed;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e3a5f;
+      border: 1px solid #3b82f6;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      display: none;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>联合器 · 圆桌对话框</h1>
+      <div class="meta" id="statusLine"><span class="live"></span> 连接 Hub …</div>
+    </div>
+    <div class="controls">
+      <label class="meta">房间
+        <select id="roomSelect"></select>
+      </label>
+      <button type="button" class="secondary" id="btnRefresh">刷新</button>
+      <button type="button" class="secondary" id="btnAuto">自动补齐</button>
+      <button type="button" class="secondary" id="btnEnd">结束</button>
+    </div>
+  </header>
+
+  <main id="feed"><div class="feed-inner empty">选择或等待房间…</div></main>
+
+  <div class="composer">
+    <div class="composer-inner">
+      <label class="composer-opts">
+        <input type="checkbox" id="autoReply" checked />
+        <span>发送后自动代言（立刻齐员；不勾则靠 dialogue-watch ~2s 代回）</span>
+      </label>
+      <div class="composer-row">
+        <textarea id="userInput" rows="3" placeholder="在这里输入…（⌘/Ctrl + Enter 发送，Enter 换行）"></textarea>
+        <button type="button" id="btnSend">发送</button>
+      </div>
+      <div class="hint">常驻 <code>dialogue-watch</code> 自动 poll <b>cursor + trae</b>；勾选代言则发完立刻双方气泡。</div>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = "";
+    let roomId = null;
+    let sending = false;
+
+    const $ = (id) => document.getElementById(id);
+
+    function toast(msg) {
+      const el = $("toast");
+      el.textContent = msg;
+      el.style.display = "block";
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => { el.style.display = "none"; }, 2200);
+    }
+
+    function roleClass(m) {
+      if (m.role === "system") return "system";
+      if (m.participant === "user") return "user";
+      if (m.participant === "cursor") return "cursor";
+      if (m.participant === "trae") return "trae";
+      return "user";
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function render(data) {
+      const room = data.room;
+      const msgs = data.messages || [];
+      $("statusLine").innerHTML =
+        `<span class="live"></span>` +
+        `<strong>#${room.id}</strong> ${escapeHtml(room.title)} · ` +
+        `R${room.current_round} · ${room.status}` +
+        (room.round_complete ? " · 本轮已齐" : " · 等待发言") +
+        ` · ${room.participants.join(" + ")}`;
+
+      const wrap = document.createElement("div");
+      wrap.className = "feed-inner";
+      if (!msgs.length) {
+        wrap.classList.add("empty");
+        wrap.textContent = "还没有消息";
+        $("feed").replaceChildren(wrap);
+        return;
+      }
+      wrap.innerHTML = msgs.map((m) => {
+        const cls = roleClass(m);
+        const ts = (m.created_at || "").replace("T", " ").slice(0, 19);
+        if (cls === "system") {
+          return `<div class="bubble system"><div class="body">${escapeHtml(m.body)}</div></div>`;
+        }
+        return `<div class="bubble ${cls}">
+          <div class="who"><span class="badge">${escapeHtml(m.participant)}</span>
+            <span>R${m.round}</span><span>${ts}</span></div>
+          <div class="body">${escapeHtml(m.body)}</div>
+        </div>`;
+      }).join("");
+      $("feed").replaceChildren(wrap);
+      $("feed").scrollTop = $("feed").scrollHeight;
+    }
+
+    async function loadRooms() {
+      const r = await fetch(`${API}/api/v1/dialogue/rooms?project_key=maotai&open_only=false`);
+      const data = await r.json();
+      const rooms = data.rooms || [];
+      const sel = $("roomSelect");
+      const prev = roomId;
+      sel.innerHTML = rooms.map((x) =>
+        `<option value="${x.id}">#${x.id} ${x.status} · ${escapeHtml(x.title)} · R${x.current_round}</option>`
+      ).join("") || `<option value="">无房间</option>`;
+      if (prev && rooms.some((x) => x.id === prev)) sel.value = String(prev);
+      else if (rooms.length) {
+        const open = rooms.find((x) => x.status === "open") || rooms[0];
+        sel.value = String(open.id);
+        roomId = open.id;
+      }
+      sel.onchange = () => {
+        roomId = Number(sel.value) || null;
+        connectEvents();
+        refreshTranscript();
+      };
+    }
+
+    async function refreshTranscript() {
+      if (!roomId) return;
+      try {
+        const r = await fetch(`${API}/api/v1/dialogue/rooms/${roomId}/transcript`);
+        if (!r.ok) throw new Error(await r.text());
+        render(await r.json());
+      } catch (e) {
+        $("statusLine").textContent = "拉取失败: " + e.message;
+      }
+    }
+
+    let es = null;
+    function connectEvents() {
+      if (es) {
+        try { es.close(); } catch (_) {}
+        es = null;
+      }
+      if (!roomId) return;
+      es = new EventSource(`${API}/api/v1/dialogue/rooms/${roomId}/events`);
+      es.addEventListener("transcript", (ev) => {
+        try { render(JSON.parse(ev.data)); } catch (_) {}
+      });
+    }
+
+    async function sendUser() {
+      const input = $("userInput");
+      const body = input.value.trim();
+      if (!body) {
+        toast("请先输入内容");
+        input.focus();
+        return;
+      }
+      if (!roomId) {
+        toast("没有可用房间");
+        return;
+      }
+      if (sending) return;
+      sending = true;
+      $("btnSend").disabled = true;
+      try {
+        const auto = $("autoReply").checked;
+        const r = await fetch(`${API}/api/v1/dialogue/rooms/${roomId}/user-message`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ body, auto_reply: auto }),
+        });
+        if (!r.ok) {
+          toast("发送失败");
+          console.error(await r.text());
+          return;
+        }
+        const data = await r.json();
+        input.value = "";
+        input.focus();
+        if (data.transcript) render(data.transcript);
+        else await refreshTranscript();
+        const filled = (data.auto_fill && data.auto_fill.filled) || [];
+        toast(auto ? `已发送，双方已回：${filled.join("+") || "ok"}` : "已发送，等待 IDE reply");
+      } catch (e) {
+        toast("网络错误: " + e.message);
+      } finally {
+        sending = false;
+        $("btnSend").disabled = false;
+      }
+    }
+
+    async function autoFill() {
+      if (!roomId) return;
+      const r = await fetch(`${API}/api/v1/dialogue/rooms/${roomId}/auto-fill`, { method: "POST" });
+      if (!r.ok) {
+        toast("自动补齐失败");
+        return;
+      }
+      await refreshTranscript();
+      toast("已尝试补齐本轮");
+    }
+
+    async function endRoom() {
+      if (!roomId || !confirm("结束房间 #" + roomId + "？")) return;
+      await fetch(`${API}/api/v1/dialogue/rooms/${roomId}/end`, { method: "POST" });
+      await loadRooms();
+      await refreshTranscript();
+    }
+
+    $("btnRefresh").onclick = async () => { await loadRooms(); await refreshTranscript(); };
+    $("btnAuto").onclick = autoFill;
+    $("btnSend").onclick = sendUser;
+    $("btnEnd").onclick = endRoom;
+    $("userInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        sendUser();
+      }
+    });
+
+    (async () => {
+      await loadRooms();
+      await refreshTranscript();
+      connectEvents();
+      $("userInput").focus();
+      // SSE 为主；兜底慢轮询
+      setInterval(refreshTranscript, 5000);
+    })();
+  </script>
+</body>
+</html>

@@ -97,6 +97,26 @@ def handle_card_action(db: Session, payload: dict[str, Any]) -> dict[str, Any]:
             },
         }
 
+    if action_type == "confirm_exec":
+        from app.services.exec_confirm import confirm_task
+
+        tid = int(value.get("task_id") or 0)
+        try:
+            confirm_task(tid)
+            return {"toast": {"type": "success", "content": f"已确认执行任务 #{tid}"}}
+        except ValueError as e:
+            return {"toast": {"type": "error", "content": str(e)}}
+
+    if action_type == "defer_exec":
+        from app.services.exec_confirm import defer_task
+
+        tid = int(value.get("task_id") or 0)
+        try:
+            defer_task(tid)
+            return {"toast": {"type": "info", "content": f"任务 #{tid} 已稍后执行"}}
+        except ValueError as e:
+            return {"toast": {"type": "error", "content": str(e)}}
+
     return {"toast": {"type": "info", "content": "未知卡片操作"}}
 
 

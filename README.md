@@ -108,6 +108,52 @@ export AGENT_ID=cursor           # 或 trae
 联通              → 看哪些设备在线
 ```
 
+**手机遥控闭环（电脑常驻）**：
+
+```bash
+# 推荐：菜单栏托盘一键常驻（Hub + 收件箱 + 心跳；关窗不退出）
+./scripts/start-desktop.sh
+```
+
+或纯命令行：
+
+```bash
+cd hub
+./scripts/start-services.sh
+export DEVICE_ID=mac-a
+export INBOX_AUTO_AGENTS=cursor,trae,dsh
+./scripts/run-inbox-auto.sh
+```
+
+飞书/App 派活 → 确认执行 → HANDOFF / 唤醒 → 「已收到」回传 → 干完再回摘要。  
+说明：[desktop/README.md](desktop/README.md) · [integrations/dsh-plugin/MOBILE.md](integrations/dsh-plugin/MOBILE.md)
+
+### 6. 桌面应用（Mac / Windows）
+
+| 版本 | 说明 |
+|------|------|
+| **A · 个人版** | 免费；本机 Hub + 飞书桥 + Inbox Auto-Runner |
+| **B · 企业版** | 付费 License；仅工作站，连企业远程 Hub |
+
+```bash
+cd desktop && npm install && npm start
+# 打安装包：npm run build:mac  或  npm run build:win
+```
+
+详见 [desktop/README.md](desktop/README.md) · [设计说明](docs/superpowers/specs/2026-08-26-unifier-desktop-apps.md)
+
+### 7. Android App（手机遥控 Hub）
+
+与飞书并列的移动端入口：派活、查任务、设备联通、意图审计。
+
+```bash
+cd mobile && npm install && npx cap sync android
+npm run open:android   # Android Studio 打 APK
+```
+
+App 内配置电脑局域网 Hub，例如 `http://192.168.1.10:8787`（勿填 `127.0.0.1`）。  
+详见 [mobile/README.md](mobile/README.md)
+
 ---
 
 ## 核心能力
@@ -132,6 +178,8 @@ unifier/
 │   └── mcp_server/        ← Cursor/Trae MCP 工具
 ├── config/                ← MCP 示例 + local.env 模板
 ├── scripts/setup.sh       ← 首次安装
+├── desktop/               ← Electron 桌面（个人版 A / 企业版 B）
+├── mobile/                ← Android App（Capacitor 遥控 Hub）
 └── docs/decisions/        ← 产品决策记录
 ```
 
@@ -179,6 +227,8 @@ API 文档：启动 Hub 后访问 `http://127.0.0.1:8787/docs`
 
 ## 参与 & 文档
 
+- **DeepSeek Harness 插件**：[`integrations/dsh-plugin/`](integrations/dsh-plugin/) — DSH 调 Hub；**手机推荐飞书遥控**，见 [MOBILE.md](integrations/dsh-plugin/MOBILE.md)
+- 一键启动：`./scripts/run-dsh-with-unifier.sh`
 - **共同维护**：请向官方仓库提 PR，勿另立独立 Fork 项目（见 [LICENSE](LICENSE) · [CONTRIBUTING.md](CONTRIBUTING.md) · [GOVERNANCE.md](GOVERNANCE.md)）
 - 安装问题 → [INSTALL.md](INSTALL.md)  
 - Hub API → [hub/README.md](hub/README.md)  

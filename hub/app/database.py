@@ -64,3 +64,20 @@ def _migrate_sqlite() -> None:
             conn.execute(
                 text("ALTER TABLE tasks ADD COLUMN feishu_message_id VARCHAR(128)")
             )
+
+    if "manifests" not in insp.get_table_names():
+        return
+    mcols = {c["name"] for c in insp.get_columns("manifests")}
+    with engine.begin() as conn:
+        if "intent" not in mcols:
+            conn.execute(text("ALTER TABLE manifests ADD COLUMN intent TEXT"))
+        if "cot_summary" not in mcols:
+            conn.execute(text("ALTER TABLE manifests ADD COLUMN cot_summary TEXT"))
+        if "channel" not in mcols:
+            conn.execute(
+                text("ALTER TABLE manifests ADD COLUMN channel VARCHAR(32) DEFAULT 'feishu'")
+            )
+        if "channel_message_id" not in mcols:
+            conn.execute(
+                text("ALTER TABLE manifests ADD COLUMN channel_message_id VARCHAR(128)")
+            )

@@ -1,0 +1,8 @@
+# Example — run `npm run print-patch` to generate with your machine paths
+- insert:
+    - id: unifier
+      name: '/absolute/path/to/联合器/integrations/dsh-plugin/src/index.ts'
+      config:
+        hubUrl: 'http://127.0.0.1:8787'
+        deviceId: 'mac-a'
+        agentId: 'dsh'

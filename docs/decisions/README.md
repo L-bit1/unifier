@@ -25,6 +25,9 @@ YYYY-MM-DD-简短主题.md
 
 | 日期 | 文件 | 摘要 |
 |------|------|------|
+| 2026-08-26 | [2026-08-26-inbox-auto-runner.md](2026-08-26-inbox-auto-runner.md) | 手机飞书遥控：Inbox Auto-Runner 多端收件/唤醒/飞书 ack |
+| 2026-07-18 | [2026-07-18-dialogue-roundtable.md](2026-07-18-dialogue-roundtable.md) | Cursor↔Trae 圆桌对话 API/MCP；茅台试点 |
+| 2026-06-18 | [2026-06-18-builtin-workflow-engine.md](2026-06-18-builtin-workflow-engine.md) | 路线 B：内置工作流引擎、可视化编辑器、13 节点 |
 | 2026-06-18 | [2026-06-18-n8n-automation-integration.md](2026-06-18-n8n-automation-integration.md) | n8n Sidecar 套件、Hub 事件出站、NAS 式套件总览 API |
 | 2026-06-09 | [2026-06-09-community-license-single-upstream.md](2026-06-09-community-license-single-upstream.md) | 共同维护许可证、禁止独立 Fork 产品、CONTRIBUTING/GOVERNANCE |
 | 2026-06-09 | [2026-06-09-standalone-github-release.md](2026-06-09-standalone-github-release.md) | 独立仓库发布、配置分层 |

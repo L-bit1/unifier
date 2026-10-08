@@ -38,11 +38,26 @@ class Settings(BaseSettings):
     lab_queue_url: str = "http://127.0.0.1:8790"
     custom_ai_session_id: str = "soul-unified"
 
-    # n8n 自动化引擎（NAS 式套件：可选启用）
+    # n8n 自动化引擎（NAS 式套件：可选启用，路线 A 遗留）
     n8n_enabled: bool = False
     n8n_url: str = "http://127.0.0.1:5678"
     n8n_webhook_path: str = "unifier-events"
     n8n_api_key: str | None = None
+
+    # 内置工作流引擎（路线 B，默认启用）
+    workflows_enabled: bool = True
+    workflow_smtp_host: str = ""
+    workflow_smtp_port: int = 587
+    workflow_smtp_user: str = ""
+    workflow_smtp_password: str = ""
+    workflow_smtp_from: str = "unifier@localhost"
+
+    # 圆桌对话
+    dialogue_round_timeout_seconds: int = 600  # IDE 模式：给人留时间手动 poll
+    dialogue_transcript_dir: str = ""  # 空则写 ~/.unifier/dialogue + 试点仓
+    dialogue_auto_reply: bool = True  # 网页发题后默认尝试 Hub 代言补齐未发言方
+    dialogue_auto_use_soul: bool = True  # 优先调自研灵魂；失败则用规则代言
+    dialogue_mask_peers_until_complete: bool = False  # False=随时可见对方发言
 
     @property
     def n8n_webhook_url(self) -> str:
